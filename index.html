@@ -1788,6 +1788,25 @@ option{background:#fff!important;color:#0f1e33!important}
   .sidebar{padding-bottom:20px!important}
 }
 
+/* ===== v14 사이드바 스크롤 확실히 수정 (side-note 절대위치 해제) ===== */
+@media(min-width:821px){
+  .sidebar{
+    position:sticky!important;top:0!important;
+    height:100vh!important;max-height:100vh!important;
+    overflow-y:auto!important;overflow-x:hidden!important;
+    display:flex!important;flex-direction:column!important;
+  }
+  /* 핵심: side-note를 절대위치 → 일반 흐름으로. 메뉴 맨 아래에 자연스럽게 배치 */
+  .side-note{
+    position:static!important;left:auto!important;right:auto!important;bottom:auto!important;
+    margin-top:16px!important;padding-top:14px!important;
+    border-top:1px solid var(--line)!important;
+    flex:none!important;
+  }
+  /* nav가 늘어나도 스크롤 영역 안에 들어가게 */
+  .nav{flex:0 0 auto!important}
+}
+
 </style>
 </head>
 <body>
