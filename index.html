@@ -1728,6 +1728,66 @@ option{background:#fff!important;color:#0f1e33!important}
 #research b,#research strong{color:#0f1e33!important}
 #follow3 .follow-score,#follow3 b,#follow3 strong{color:#8a5e00!important}
 
+/* ===== v12 모바일 사이드바 스크롤 수정 ===== */
+@media(max-width:820px){
+  /* 세로 스택 레이아웃으로 되돌리고 사이드바를 정상 흐름에 배치 */
+  .app{display:block!important;min-height:100vh!important}
+  .sidebar{
+    position:static!important;left:auto!important;right:auto!important;bottom:auto!important;top:auto!important;
+    width:100%!important;height:auto!important;max-height:none!important;
+    flex-direction:column!important;
+    border-right:0!important;border-bottom:1px solid var(--line)!important;
+    padding:16px 14px!important;overflow:visible!important;z-index:auto!important;
+    box-shadow:none!important;
+  }
+  /* nav를 세로 리스트로 (아이콘+풀라벨 모두 표시) */
+  .nav{display:flex!important;flex-direction:column!important;gap:3px!important;overflow:visible!important;grid-template-columns:none!important}
+  .nav button{
+    width:100%!important;min-height:0!important;flex-direction:row!important;
+    justify-content:flex-start!important;align-items:center!important;
+    padding:12px 14px!important;margin:0!important;border-radius:10px!important;
+    white-space:normal!important;font-size:15px!important;
+  }
+  .nav-icon{margin:0 10px 0 0!important;font-size:17px!important}
+  .nav-full{display:inline!important}       /* 풀 라벨 다시 표시 */
+  .nav-short{display:none!important}          /* 짧은 라벨 숨김 */
+  .nav-group-label{display:block!important;padding:14px 10px 5px!important}
+  .home-btn{width:100%!important}
+  .side-note{display:block!important;margin-top:12px!important}
+  /* 본문이 사이드바 아래로 자연스럽게 흐르도록 */
+  .main{padding:20px 15px 60px!important}
+  /* 페이지 자체 스크롤 정상화 */
+  body{overflow-y:auto!important}
+}
+@media(max-width:360px){
+  .nav button{font-size:14px!important;padding:11px 12px!important}
+  .home-main,.home-sub{font-size:19px!important}
+}
+
+/* ===== v13 데스크톱 사이드바 세로 스크롤 (노트북 등 낮은 해상도) ===== */
+@media(min-width:821px){
+  .sidebar{
+    height:100vh!important;
+    max-height:100vh!important;
+    overflow-y:auto!important;      /* 메뉴가 넘치면 세로 스크롤 */
+    overflow-x:hidden!important;
+    scrollbar-width:thin!important;
+  }
+  .sidebar::-webkit-scrollbar{width:7px}
+  .sidebar::-webkit-scrollbar-thumb{background:#cdd6e4;border-radius:4px}
+  .sidebar::-webkit-scrollbar-track{background:transparent}
+  /* 메뉴 간격을 살짝 줄여 한 화면에 더 많이 들어가게 */
+  .nav button{padding:9px 12px!important}
+  .nav-group-label{padding:10px 10px 4px!important}
+  .side-note{margin-top:14px!important}
+}
+
+/* v13.1: 사이드 안내문구가 메뉴와 안 겹치게 (스크롤 흐름 정리) */
+@media(min-width:821px){
+  .side-note{margin-top:16px!important;padding-top:14px!important;border-top:1px solid var(--line)!important;flex:none!important}
+  .sidebar{padding-bottom:20px!important}
+}
+
 </style>
 </head>
 <body>
