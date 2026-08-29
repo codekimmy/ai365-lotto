@@ -1807,6 +1807,24 @@ option{background:#fff!important;color:#0f1e33!important}
   .nav{flex:0 0 auto!important}
 }
 
+
+/* ===== v15 사이드바 스크롤 최종 (전역, 미디어쿼리 무관) ===== */
+.sidebar{
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+}
+.side-note{
+  position:static!important;
+  left:auto!important;right:auto!important;bottom:auto!important;top:auto!important;
+  margin-top:16px!important;padding-top:14px!important;
+  border-top:1px solid #d9e2ee!important;
+  display:block!important;
+}
+@media(min-width:821px){
+  .sidebar{position:sticky!important;top:0!important;height:100vh!important;max-height:100vh!important;display:flex!important;flex-direction:column!important}
+  .side-note{display:block!important}
+}
+
 </style>
 </head>
 <body>
