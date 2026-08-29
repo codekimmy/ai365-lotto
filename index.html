@@ -1903,6 +1903,7 @@ option{background:#fff!important;color:#0f1e33!important}
 
 
 
+
 </style>
 </head>
 <body>
@@ -4328,7 +4329,7 @@ function flowRun(){
   const sosoEnds=ends.slice(0,3).map(e=>e.d);  // 덜 나온 끝수 3개
   $("flow_end").innerHTML=`<div class="table-wrap"><table><thead><tr><th>끝수</th><th>최근 ${W}회 등장</th><th>흐름</th><th>경과</th><th>해당 번호</th></tr></thead><tbody>${ends.map((e,i)=>{
     const bar=Math.round(e.c/emax*100);const soso=i<3;
-    return `<tr${soso?' style="background:#fdf6e3"':''}><td><b style="font-size:15px">${e.d}</b></td><td><b>${e.c}회</b></td><td><div style="background:#e7edf6;border-radius:6px;height:9px;width:120px;overflow:hidden"><div style="background:${soso?'#c8890a':'#0e9c91'};height:100%;width:${bar}%"></div></div></td><td>${e.since}회 전</td><td>${numsOf(e.d).map(n=>`<span class="our-ball tiny" style="width:22px;height:22px">${n}</span>`).join(" ")}${soso?' <span class="tag" style="background:#fdf1d6;color:#8a5e00;font-weight:800">덜 나옴</span>':''}</td></tr>`;
+    return `<tr${soso?' style="background:#fdf6e3"':''}><td><b style="font-size:15px">${e.d}</b></td><td><b>${e.c}회</b></td><td><div style="background:#e7edf6;border-radius:6px;height:9px;width:120px;overflow:hidden"><div style="background:${soso?'#c8890a':'#0e9c91'};height:100%;width:${bar}%"></div></div></td><td>${e.since}회 전</td><td>${numsOf(e.d).map(n=>`<span class="our-ball r${rng(n)} tiny" style="width:22px;height:22px">${n}</span>`).join(" ")}${soso?' <span class="tag" style="background:#fdf1d6;color:#8a5e00;font-weight:800">덜 나옴</span>':''}</td></tr>`;
   }).join("")}</tbody></table></div><p style="font-size:12px;color:var(--muted);margin-top:8px">노란 배경 = 최근 ${W}회에서 상대적으로 덜 등장한 끝수 (참고용)</p>`;
   // 구간
   const rA=analyze(ns=>ns.map(rng));
@@ -4337,7 +4338,7 @@ function flowRun(){
   const rmax=Math.max(...ranges.map(r=>r.c),1);ranges.sort((a,b)=>a.c-b.c);
   const numsOfRange=g=>{const o=[];for(let n=1;n<=45;n++)if(rng(n)===g)o.push(n);return o;};
   const sosoRanges=ranges.slice(0,2).map(r=>r.g);  // 덜 나온 구간 2개
-  $("flow_range").innerHTML=`<div class="table-wrap"><table><thead><tr><th>구간</th><th>최근 ${W}회 등장</th><th>흐름</th><th>경과</th><th>해당 번호</th></tr></thead><tbody>${ranges.map((r,i)=>{const bar=Math.round(r.c/rmax*100);const soso=i<2;return `<tr${soso?' style="background:#fdf6e3"':''}><td><b>${RL[r.g]}</b></td><td><b>${r.c}회</b></td><td><div style="background:#e7edf6;border-radius:6px;height:9px;width:120px;overflow:hidden"><div style="background:${soso?'#c8890a':'#0e9c91'};height:100%;width:${bar}%"></div></div></td><td>${r.since}회 전</td><td>${numsOfRange(r.g).map(n=>`<span class="our-ball tiny" style="width:22px;height:22px">${n}</span>`).join(" ")}${soso?' <span class="tag" style="background:#fdf1d6;color:#8a5e00;font-weight:800">덜 나옴</span>':''}</td></tr>`;}).join("")}</tbody></table></div>`;
+  $("flow_range").innerHTML=`<div class="table-wrap"><table><thead><tr><th>구간</th><th>최근 ${W}회 등장</th><th>흐름</th><th>경과</th><th>해당 번호</th></tr></thead><tbody>${ranges.map((r,i)=>{const bar=Math.round(r.c/rmax*100);const soso=i<2;return `<tr${soso?' style="background:#fdf6e3"':''}><td><b>${RL[r.g]}</b></td><td><b>${r.c}회</b></td><td><div style="background:#e7edf6;border-radius:6px;height:9px;width:120px;overflow:hidden"><div style="background:${soso?'#c8890a':'#0e9c91'};height:100%;width:${bar}%"></div></div></td><td>${r.since}회 전</td><td>${numsOfRange(r.g).map(n=>`<span class="our-ball r${rng(n)} tiny" style="width:22px;height:22px">${n}</span>`).join(" ")}${soso?' <span class="tag" style="background:#fdf1d6;color:#8a5e00;font-weight:800">덜 나옴</span>':''}</td></tr>`;}).join("")}</tbody></table></div>`;
   // ===== 종합 후보 번호: 덜 나온 끝수/구간에 해당하는 번호에 점수 부여 =====
   const score={};
   for(let n=1;n<=45;n++){
@@ -4364,7 +4365,7 @@ function flowRun(){
   const lo=sums.filter(s=>s<115).length,mid=sums.filter(s=>s>=115&&s<=161).length,hi=sums.filter(s=>s>161).length;
   $("flow_misc").innerHTML=`<div class="cards" style="margin-bottom:0"><div class="card"><div class="label">최근 ${W}회 홀수</div><div class="value">${odd}</div><div class="sub">개 등장</div></div><div class="card"><div class="label">최근 ${W}회 짝수</div><div class="value">${even}</div><div class="sub">개 등장</div></div><div class="card"><div class="label">평균 합계</div><div class="value">${avgSum}</div><div class="sub">낮음 ${lo} · 중간 ${mid} · 높음 ${hi}</div></div></div><p style="font-size:12px;color:var(--muted);margin-top:10px">홀짝 균형이 한쪽으로 치우쳤다면 반대쪽을, 합계가 계속 높거나 낮았다면 반대 밴드를 참고할 수 있습니다.</p>`;
   // 최근 회차 끝수 진행
-  $("flow_recent").innerHTML=`<div class="table-wrap"><table><thead><tr><th>회차</th><th>당첨번호</th><th>끝수</th></tr></thead><tbody>${rs.slice(-12).reverse().map(r=>{const es=[...new Set(r.nums.map(n=>n%10))].sort((a,b)=>a-b);return `<tr><td><b>${r.draw}회</b></td><td>${r.nums.map(n=>`<span class="our-ball tiny" style="width:23px;height:23px">${n}</span>`).join(" ")}</td><td>${es.map(e=>`<span class="tag" style="background:#e9eff8;color:#2b3c53;font-weight:800;margin-right:3px">${e}</span>`).join("")}</td></tr>`;}).join("")}</tbody></table></div>`;
+  $("flow_recent").innerHTML=`<div class="table-wrap"><table><thead><tr><th>회차</th><th>당첨번호</th><th>끝수</th></tr></thead><tbody>${rs.slice(-12).reverse().map(r=>{const es=[...new Set(r.nums.map(n=>n%10))].sort((a,b)=>a-b);return `<tr><td><b>${r.draw}회</b></td><td>${r.nums.map(n=>`<span class="our-ball r${rng(n)} tiny">${n}</span>`).join(" ")}</td><td>${es.map(e=>`<span class="tag" style="background:#e9eff8;color:#2b3c53;font-weight:800;margin-right:3px">${e}</span>`).join("")}</td></tr>`;}).join("")}</tbody></table></div>`;
 }
 
 function init(){
