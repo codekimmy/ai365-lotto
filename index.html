@@ -1905,6 +1905,9 @@ option{background:#fff!important;color:#0f1e33!important}
 
 
 
+
+
+
 </style>
 </head>
 <body>
@@ -4135,7 +4138,7 @@ const OURVIEWS_HTML=`
     <p style="font-size:12px;color:var(--accent2);font-weight:700;margin-bottom:12px">※ 당첨 예측이 아니라 각 구간 관점의 분석 결과입니다. 참고용.</p>
     <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center">
       <label style="font-size:12px">분석 방식
-        <select id="win_mode" style="margin-left:6px"><option value="freq">구간 내 빈도 상위</option><option value="hybrid">빈도+흐름 균형</option><option value="due">덜 나온 흐름 우선</option></select>
+        <select id="win_mode" style="margin-left:6px"><option value="ensemble">종합 앙상블(여러 로직 합산)</option><option value="freq">구간 내 빈도 상위</option><option value="hybrid">빈도+미출현 균형</option><option value="due">장기 미출현 우선</option></select>
       </label>
       <button class="btn" id="win_run" style="background:var(--accent);color:#fff;border:0">18개 분석</button>
     </div>
@@ -4390,6 +4393,9 @@ function winRun(){
   const mode=$("win_mode").value;
   const rs=rows();const latest=rs.length-1;
   const last={};rs.forEach((r,i)=>r.nums.forEach(n=>last[n]=i));
+  // 전체 기준 장기 미출현 경과 (구간과 무관하게 실제 마지막 출현)
+  const sinceAll={};for(let n=1;n<=45;n++)sinceAll[n]=latest-(last[n]??-1);
+  const maxSince=Math.max(...Object.values(sinceAll),1);
   const windows=[30,60,100,150,200];
   const rng=n=>n<=10?1:n<=20?2:n<=30?3:n<=40?4:5;
   const results={};
@@ -4398,27 +4404,48 @@ function winRun(){
     const freq={};for(let n=1;n<=45;n++)freq[n]=0;
     seg.forEach(r=>r.nums.forEach(n=>freq[n]++));
     const maxF=Math.max(...Object.values(freq),1);
+    const prev=new Set(rs[rs.length-1].nums);  // 직전 회차(이월수)
+    const adjacent=new Set();                  // 직전 회차 번호의 양옆 인접수
+    prev.forEach(n=>{if(n-1>=1)adjacent.add(n-1);if(n+1<=45)adjacent.add(n+1);});
     const scored=[];
     for(let n=1;n<=45;n++){
-      const f=freq[n], since=latest-(last[n]??-1);
-      const fN=f/maxF;                        // 빈도 정규화 0~1
-      const sN=Math.min(since/w,1);           // 경과 정규화 0~1
+      const fN=freq[n]/maxF;                      // 구간 빈도 정규화
+      const sN=Math.min(sinceAll[n]/maxSince,1);  // 장기 미출현 정규화 (전체 기준)
+      const carry=prev.has(n)?1:0;                // 이월수(self 재출현)
+      const adj=adjacent.has(n)?1:0;              // 직전 번호의 양옆 인접수
+      const active=freq[n]>0?1:0;                 // 구간 내 활동
       let score;
-      if(mode==="freq")score=fN;              // 빈도 우선
-      else if(mode==="due")score=sN*0.7+fN*0.3; // 덜 나온 것 우선
-      else score=fN*0.5+sN*0.5;               // 균형
-      scored.push({n,f,since,score});
+      if(mode==="freq")score=fN*0.7+sN*0.3;
+      else if(mode==="due")score=sN*0.75+fN*0.25;
+      else if(mode==="hybrid")score=fN*0.5+sN*0.5;
+      else score=fN*0.24+sN*0.28+carry*0.16+adj*0.14+active*0.08+(sinceAll[n]>=w*0.3?0.10:0); // ensemble (self+인접 반영)
+      scored.push({n,score});
     }
     scored.sort((a,b)=>b.score-a.score||a.n-b.n);
     results[w]=scored.slice(0,18).map(x=>x.n).sort((a,b)=>a-b);
   }
-  // 구간별 카드 렌더
-  const modeLabel={freq:"구간 내 빈도 상위",hybrid:"빈도+흐름 균형",due:"덜 나온 흐름 우선"}[mode];
-  $("win_result").innerHTML=windows.map(w=>{
+  const modeLabel={ensemble:"종합 앙상블(빈도+미출현+이월수+인접수)",freq:"빈도 위주(미출현 일부 반영)",hybrid:"빈도+미출현 균형",due:"장기 미출현 우선"}[mode];
+  // 장기 미출현 상위 8 (참고 표시용)
+  const longMiss=Object.entries(sinceAll).map(([n,s])=>({n:+n,s})).sort((a,b)=>b.s-a.s).slice(0,8);
+  // 직전 회차 self + 인접수
+  const prevArr=[...rs[rs.length-1].nums].sort((a,b)=>a-b);
+  const adjSet=new Set();prevArr.forEach(n=>{if(n-1>=1)adjSet.add(n-1);if(n+1<=45)adjSet.add(n+1);});
+  const adjArr=[...adjSet].filter(n=>!prevArr.includes(n)).sort((a,b)=>a-b);
+  $("win_result").innerHTML=
+    `<div class="panel" style="border:1px solid #cfeae6;background:#f0fbfa"><h2 style="margin:0 0 8px;font-size:16px;color:#0c7a72">참고 · 직전 ${rs[rs.length-1].draw}회차 self + 양옆 인접수</h2>
+      <div style="font-size:12px;color:#0c7a72;font-weight:700;margin-bottom:6px">직전 당첨번호(self)</div>
+      <div class="our-balls" style="gap:7px;margin-bottom:10px">${prevArr.map(n=>`<span class="our-ball r${rng(n)}" style="width:32px;height:32px;font-size:13px;box-shadow:inset 0 0 0 2px rgba(0,0,0,.9)">${n}</span>`).join(" ")}</div>
+      <div style="font-size:12px;color:#8a5e00;font-weight:700;margin-bottom:6px">양옆 인접수 (n-1, n+1)</div>
+      <div class="our-balls" style="gap:7px">${adjArr.map(n=>`<span class="our-ball r${rng(n)}" style="width:30px;height:30px;font-size:12px">${n}</span>`).join(" ")}</div>
+      <p style="font-size:12px;color:var(--muted);margin-top:8px">직전 번호가 다시 나오거나(self) 그 양옆 번호가 나오는 흐름을 아래 앙상블 분석에 반영했습니다.</p></div>`+
+    `<div class="panel" style="border:1px solid #ecd9a6;background:#fdf9ef"><h2 style="margin:0 0 8px;font-size:16px;color:#8a5e00">참고 · 현재 장기 미출현 번호</h2>
+      <div class="our-balls" style="gap:7px">${longMiss.map(x=>`<span class="our-ball r${rng(x.n)}" style="width:32px;height:32px;font-size:13px">${x.n}</span> <span style="font-size:11px;color:#8a5e00;margin-right:8px;align-self:center">${x.s}회</span>`).join("")}</div>
+      <p style="font-size:12px;color:var(--muted);margin-top:8px">각 번호 아래 숫자 = 마지막 출현 후 경과 회차. 아래 구간 분석에도 이 미출현 흐름이 반영됩니다.</p></div>`+
+    windows.map(w=>{
     const nums=results[w];
     return `<div class="panel"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="margin:0">최근 ${w}회차 기준 · 18개</h2><span style="font-size:12px;color:var(--muted)">${modeLabel}</span></div>
-      <div class="our-balls" style="gap:7px">${nums.map(n=>`<span class="our-ball r${rng(n)}" style="width:34px;height:34px;font-size:14px">${n}</span>`).join(" ")}</div>
-      <p style="font-size:12px;color:var(--muted);margin-top:10px">${nums.join(", ")}</p></div>`;
+      <div class="our-balls" style="gap:7px">${nums.map(n=>{const isMiss=sinceAll[n]>=8;return `<span class="our-ball r${rng(n)}" style="width:34px;height:34px;font-size:14px${isMiss?';box-shadow:inset 0 0 0 2px rgba(0,0,0,.9)':''}" ${isMiss?'title="장기 미출현"':''}>${n}</span>`;}).join(" ")}</div>
+      <p style="font-size:12px;color:var(--muted);margin-top:10px">${nums.join(", ")}<br><span style="color:#8a5e00">내부 검은 원 = 8회 이상 미출현 번호도 포함됨</span></p></div>`;
   }).join("");
   // 5개 구간 겹침 분석
   const overlap={};for(let n=1;n<=45;n++)overlap[n]=0;
