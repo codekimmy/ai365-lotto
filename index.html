@@ -1908,6 +1908,7 @@ option{background:#fff!important;color:#0f1e33!important}
 
 
 
+
 </style>
 </head>
 <body>
@@ -4135,7 +4136,8 @@ const OURVIEWS_HTML=`
   <div class="panel">
     <h2 style="margin-bottom:10px">구간별 후보 18</h2>
     <p style="color:var(--muted);font-size:13px;margin-bottom:6px">마지막 당첨회차 이전 <b>30·60·100·150·200회차</b>를 각각 기준으로 잡고, 그 구간의 흐름을 분석해 다음 추첨일에 나올 만한 번호 <b>18개</b>씩 뽑아 보여줍니다.</p>
-    <p style="font-size:12px;color:var(--accent2);font-weight:700;margin-bottom:12px">※ 당첨 예측이 아니라 각 구간 관점의 분석 결과입니다. 참고용.</p>
+    <p style="font-size:12px;color:var(--accent2);font-weight:700;margin-bottom:6px">※ 당첨 예측이 아니라 각 구간 관점의 분석 결과입니다. 참고용.</p>
+    <p id="win_basis" style="font-size:12px;color:var(--muted);margin-bottom:12px"></p>
     <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center">
       <label style="font-size:12px">분석 방식
         <select id="win_mode" style="margin-left:6px"><option value="ensemble">종합 앙상블(여러 로직 합산)</option><option value="freq">구간 내 빈도 상위</option><option value="hybrid">빈도+미출현 균형</option><option value="due">장기 미출현 우선</option></select>
@@ -4392,6 +4394,10 @@ function flowRun(){
 function winRun(){
   const mode=$("win_mode").value;
   const rs=rows();const latest=rs.length-1;
+  const latestDraw=rs[rs.length-1].draw, latestDate=rs[rs.length-1].date;
+  // 기준 회차 안내 (매주 최신 회차 기준으로 자동 갱신됨)
+  const infoEl=document.getElementById("win_basis");
+  if(infoEl)infoEl.innerHTML=`기준: <b>${latestDraw}회</b>(${latestDate}) 까지의 데이터 · 다음 추첨(${latestDraw+1}회) 대상 · <span style="color:var(--good)">시트 갱신 시 자동 재계산</span>`;
   const last={};rs.forEach((r,i)=>r.nums.forEach(n=>last[n]=i));
   // 전체 기준 장기 미출현 경과 (구간과 무관하게 실제 마지막 출현)
   const sinceAll={};for(let n=1;n<=45;n++)sinceAll[n]=latest-(last[n]??-1);
@@ -4505,6 +4511,23 @@ function init(){
   home.onclick=()=>switchView("dashboard");sb.insertBefore(home,sb.firstChild);
   // 전체 용어 태깅 (원본 뷰 포함)
   autoTag(document.querySelector(".main"));
+
+  // 데이터 갱신(시트 동기화) 시 현재 열린 우리 뷰 자동 재계산
+  document.addEventListener("lotto:data-updated",()=>{
+    // 현재 활성 뷰 판별
+    const active=document.querySelector(".view.active");
+    const id=active?active.id:null;
+    try{
+      if(id==="gen_win")winRun();
+      else if(id==="gen_flow")flowRun();
+      // 다른 뷰는 다음 진입 시 새 데이터로 계산되도록 init 플래그 리셋
+      window.__winInit=(id==="gen_win");
+      window.__flowInit=(id==="gen_flow");
+    }catch(e){}
+    // 열려있지 않은 뷰도 다음에 열 때 최신으로 계산되게 플래그 해제
+    if(id!=="gen_win")window.__winInit=false;
+    if(id!=="gen_flow")window.__flowInit=false;
+  });
 }
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })();
