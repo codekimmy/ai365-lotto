@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#07131f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Ai365Lab · Lotto Pattern Lab v16</title>
+<title>Ai365Lab · Lotto Pattern Lab</title>
 <style>
 :root{
   --bg:#07131f;--panel:#0d2030;--panel2:#10283b;--line:#23435a;
@@ -1825,6 +1825,9 @@ option{background:#fff!important;color:#0f1e33!important}
   .side-note{display:block!important}
 }
 
+/* 흐름 탐색기 종합 후보 큰 공 (두 특성 모두 해당) */
+.our-ball.flow-big{width:38px!important;height:38px!important;font-size:16px!important;box-shadow:inset 0 0 0 2px rgba(0,0,0,.9)!important}
+#flow_summary .our-balls{gap:7px!important;flex-wrap:wrap!important}
 
 /* ============================================================
    FINAL 사이드바 완전 재정의 (기존 모든 규칙 무력화)
@@ -1898,13 +1901,11 @@ option{background:#fff!important;color:#0f1e33!important}
   .main{padding:20px 15px 50px!important}
 }
 
+
+
 </style>
 </head>
 <body>
-<div id="__ver" style="position:fixed;top:8px;right:8px;z-index:99999;background:#e0533d;color:#fff;font:800 12px/1 sans-serif;padding:7px 11px;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,.25)">MENU-NEW</div>
-
-
-
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
@@ -4118,6 +4119,7 @@ const OURVIEWS_HTML=`
       <button class="btn" id="flow_run" style="background:var(--accent);color:#fff;border:0">흐름 분석</button>
     </div>
   </div>
+  <div class="panel" id="flow_summary_panel" style="border:2px solid #0e9c91"><h2 style="margin-bottom:4px;color:#0c7a72">덜 나온 특성 종합 후보 번호</h2><p style="font-size:12px;color:var(--muted);margin-bottom:12px">최근 흐름에서 덜 등장한 끝수·구간에 동시에 해당하는 번호일수록 크게 강조됩니다. 참고용으로 바로 활용하세요.</p><div id="flow_summary"></div></div>
   <div class="panel"><h2 style="margin-bottom:4px">끝수 흐름</h2><p style="font-size:12px;color:var(--muted);margin-bottom:12px">번호의 1의 자리. 최근 덜 나온 끝수와 그 번호들.</p><div id="flow_end"></div></div>
   <div class="panel"><h2 style="margin-bottom:4px">구간 흐름</h2><p style="font-size:12px;color:var(--muted);margin-bottom:12px">1-10 / 11-20 / 21-30 / 31-40 / 41-45 구간별 최근 등장.</p><div id="flow_range"></div></div>
   <div class="panel"><h2 style="margin-bottom:4px">홀짝 · 합계 흐름</h2><div id="flow_misc"></div></div>
@@ -4323,6 +4325,7 @@ function flowRun(){
   const emax=Math.max(...ends.map(e=>e.c),1);
   ends.sort((a,b)=>a.c-b.c);
   const numsOf=d=>{const o=[];for(let n=1;n<=45;n++)if(n%10===d)o.push(n);return o;};
+  const sosoEnds=ends.slice(0,3).map(e=>e.d);  // 덜 나온 끝수 3개
   $("flow_end").innerHTML=`<div class="table-wrap"><table><thead><tr><th>끝수</th><th>최근 ${W}회 등장</th><th>흐름</th><th>경과</th><th>해당 번호</th></tr></thead><tbody>${ends.map((e,i)=>{
     const bar=Math.round(e.c/emax*100);const soso=i<3;
     return `<tr${soso?' style="background:#fdf6e3"':''}><td><b style="font-size:15px">${e.d}</b></td><td><b>${e.c}회</b></td><td><div style="background:#e7edf6;border-radius:6px;height:9px;width:120px;overflow:hidden"><div style="background:${soso?'#c8890a':'#0e9c91'};height:100%;width:${bar}%"></div></div></td><td>${e.since}회 전</td><td>${numsOf(e.d).map(n=>`<span class="our-ball tiny" style="width:22px;height:22px">${n}</span>`).join(" ")}${soso?' <span class="tag" style="background:#fdf1d6;color:#8a5e00;font-weight:800">덜 나옴</span>':''}</td></tr>`;
@@ -4332,7 +4335,27 @@ function flowRun(){
   const RL={1:'1-10',2:'11-20',3:'21-30',4:'31-40',5:'41-45'};
   const ranges=[];for(let g=1;g<=5;g++)ranges.push({g,c:rA.cnt[g]||0,since:latest-(rA.last[g]??-1)});
   const rmax=Math.max(...ranges.map(r=>r.c),1);ranges.sort((a,b)=>a.c-b.c);
-  $("flow_range").innerHTML=`<div class="table-wrap"><table><thead><tr><th>구간</th><th>최근 ${W}회 등장</th><th>흐름</th><th>경과</th></tr></thead><tbody>${ranges.map((r,i)=>{const bar=Math.round(r.c/rmax*100);const soso=i<2;return `<tr${soso?' style="background:#fdf6e3"':''}><td><b>${RL[r.g]}</b></td><td><b>${r.c}회</b></td><td><div style="background:#e7edf6;border-radius:6px;height:9px;width:120px;overflow:hidden"><div style="background:${soso?'#c8890a':'#0e9c91'};height:100%;width:${bar}%"></div></div></td><td>${r.since}회 전${soso?' <span class="tag" style="background:#fdf1d6;color:#8a5e00;font-weight:800;margin-left:6px">덜 나옴</span>':''}</td></tr>`;}).join("")}</tbody></table></div>`;
+  const numsOfRange=g=>{const o=[];for(let n=1;n<=45;n++)if(rng(n)===g)o.push(n);return o;};
+  const sosoRanges=ranges.slice(0,2).map(r=>r.g);  // 덜 나온 구간 2개
+  $("flow_range").innerHTML=`<div class="table-wrap"><table><thead><tr><th>구간</th><th>최근 ${W}회 등장</th><th>흐름</th><th>경과</th><th>해당 번호</th></tr></thead><tbody>${ranges.map((r,i)=>{const bar=Math.round(r.c/rmax*100);const soso=i<2;return `<tr${soso?' style="background:#fdf6e3"':''}><td><b>${RL[r.g]}</b></td><td><b>${r.c}회</b></td><td><div style="background:#e7edf6;border-radius:6px;height:9px;width:120px;overflow:hidden"><div style="background:${soso?'#c8890a':'#0e9c91'};height:100%;width:${bar}%"></div></div></td><td>${r.since}회 전</td><td>${numsOfRange(r.g).map(n=>`<span class="our-ball tiny" style="width:22px;height:22px">${n}</span>`).join(" ")}${soso?' <span class="tag" style="background:#fdf1d6;color:#8a5e00;font-weight:800">덜 나옴</span>':''}</td></tr>`;}).join("")}</tbody></table></div>`;
+  // ===== 종합 후보 번호: 덜 나온 끝수/구간에 해당하는 번호에 점수 부여 =====
+  const score={};
+  for(let n=1;n<=45;n++){
+    let s=0;
+    if(sosoEnds.includes(n%10))s+=1;      // 덜 나온 끝수면 +1
+    if(sosoRanges.includes(rng(n)))s+=1;  // 덜 나온 구간이면 +1
+    if(s>0)score[n]=s;
+  }
+  const scored=Object.entries(score).map(([n,s])=>({n:+n,s})).sort((a,b)=>b.s-a.s||a.n-b.n);
+  const both=scored.filter(x=>x.s===2),one=scored.filter(x=>x.s===1);
+  const endLabel=sosoEnds.join("·"), rangeLabel=sosoRanges.map(g=>RL[g]).join(", ");
+  $("flow_summary").innerHTML=`
+    <div style="margin-bottom:14px"><div style="font-size:13px;font-weight:800;color:#0c7a72;margin-bottom:8px">◎ 끝수(${endLabel})와 구간(${rangeLabel}) 둘 다 덜 나온 번호 <span style="color:var(--muted);font-weight:600">— 가장 주목</span></div>
+    <div class="our-balls">${both.length?both.map(x=>`<span class="our-ball r${rng(x.n)} flow-big">${x.n}</span>`).join(" "):'<span style="color:var(--muted);font-size:13px">해당 번호 없음</span>'}</div></div>
+    <div><div style="font-size:13px;font-weight:800;color:#8a5e00;margin-bottom:8px">○ 끝수 또는 구간 하나가 덜 나온 번호 <span style="color:var(--muted);font-weight:600">— 참고</span></div>
+    <div class="our-balls">${one.map(x=>`<span class="our-ball r${rng(x.n)} tiny">${x.n}</span>`).join(" ")}</div></div>
+    <p style="font-size:12px;color:var(--muted);margin-top:12px">※ 예측이 아니라 "최근 흐름상 덜 나온 특성"을 가진 번호 정리입니다. 내부 검은 원 = 두 특성 모두 해당.</p>`;
+
   // 홀짝 + 합계
   const oA=analyze(ns=>ns.map(n=>n%2?'홀':'짝'));
   const odd=oA.cnt['홀']||0,even=oA.cnt['짝']||0;
@@ -4527,9 +4550,6 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       </div>
     </div>
   </div>
-
-
-
 
 </body>
 </html>
