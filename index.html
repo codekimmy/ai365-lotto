@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#07131f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Ai365Lab · Lotto Pattern Lab</title>
+<title>Ai365Lab · Lotto Pattern Lab v16</title>
 <style>
 :root{
   --bg:#07131f;--panel:#0d2030;--panel2:#10283b;--line:#23435a;
@@ -1828,6 +1828,9 @@ option{background:#fff!important;color:#0f1e33!important}
 </style>
 </head>
 <body>
+
+<div id="__ver" style="position:fixed;top:8px;right:8px;z-index:99999;background:#0e9c91;color:#fff;font:700 12px/1 sans-serif;padding:6px 10px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,.2)">v16 · 스크롤수정</div>
+
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
@@ -4450,6 +4453,35 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       </div>
     </div>
   </div>
+
+
+<script>
+/* v16: 사이드바 스크롤 강제 (CSS가 안 먹는 환경 대비 JS 주입) */
+(function(){
+  function fixSidebar(){
+    var sb=document.querySelector('.sidebar');
+    var note=document.querySelector('.side-note');
+    if(sb){
+      sb.style.setProperty('overflow-y','auto','important');
+      sb.style.setProperty('overflow-x','hidden','important');
+      sb.style.setProperty('height','100vh','important');
+      sb.style.setProperty('max-height','100vh','important');
+    }
+    if(note){
+      note.style.setProperty('position','static','important');
+      note.style.setProperty('bottom','auto','important');
+      note.style.setProperty('left','auto','important');
+      note.style.setProperty('right','auto','important');
+      note.style.setProperty('margin-top','16px','important');
+      note.style.setProperty('display','block','important');
+    }
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fixSidebar);
+  else fixSidebar();
+  setTimeout(fixSidebar,500);
+  setTimeout(fixSidebar,1500);
+})();
+</script>
 
 </body>
 </html>
