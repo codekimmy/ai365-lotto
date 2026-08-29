@@ -1202,7 +1202,7 @@ th{background:var(--panel2)!important}
 .nav button.active{background:var(--accent)!important;color:#fff!important}
 .nav button.active .nav-icon{color:#fff!important}
 /* 자체 메뉴 액센트 */
-.nav button[data-view="gen_pl"].active,.nav button[data-view="gen_make"].active,.nav button[data-view="gen_pool"].active,.nav button[data-view="gen_flow"].active,.nav button[data-view="gen_check"].active{background:#ff6b6b!important}
+.nav button[data-view="gen_pl"].active,.nav button[data-view="gen_make"].active,.nav button[data-view="gen_pool"].active,.nav button[data-view="gen_flow"].active,.nav button[data-view="gen_win"].active,.nav button[data-view="gen_check"].active{background:#ff6b6b!important}
 
 /* 자체 3뷰 공통 (원본 클래스 재활용 + 보강) */
 .our-ball{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;box-shadow:inset 0 -2px 0 rgba(0,0,0,.12)}
@@ -1900,6 +1900,7 @@ option{background:#fff!important;color:#0f1e33!important}
   .nav button{width:100%!important;font-size:15px!important;padding:12px 14px!important}
   .main{padding:20px 15px 50px!important}
 }
+
 
 
 
@@ -4126,6 +4127,22 @@ const OURVIEWS_HTML=`
   <div class="panel"><h2 style="margin-bottom:4px">홀짝 · 합계 흐름</h2><div id="flow_misc"></div></div>
   <div class="panel"><h2 style="margin-bottom:4px">최근 회차 끝수 진행</h2><p style="font-size:12px;color:var(--muted);margin-bottom:12px">회차별 끝수 조합의 흐름을 눈으로 훑어보세요.</p><div id="flow_recent"></div></div>
 </section>
+
+<section class="view" id="gen_win">
+  <div class="panel">
+    <h2 style="margin-bottom:10px">구간별 후보 18</h2>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:6px">마지막 당첨회차 이전 <b>30·60·100·150·200회차</b>를 각각 기준으로 잡고, 그 구간의 흐름을 분석해 다음 추첨일에 나올 만한 번호 <b>18개</b>씩 뽑아 보여줍니다.</p>
+    <p style="font-size:12px;color:var(--accent2);font-weight:700;margin-bottom:12px">※ 당첨 예측이 아니라 각 구간 관점의 분석 결과입니다. 참고용.</p>
+    <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center">
+      <label style="font-size:12px">분석 방식
+        <select id="win_mode" style="margin-left:6px"><option value="freq">구간 내 빈도 상위</option><option value="hybrid">빈도+흐름 균형</option><option value="due">덜 나온 흐름 우선</option></select>
+      </label>
+      <button class="btn" id="win_run" style="background:var(--accent);color:#fff;border:0">18개 분석</button>
+    </div>
+  </div>
+  <div id="win_result"></div>
+  <div class="panel"><h2 style="margin-bottom:6px">구간 전체 겹침 번호</h2><p style="font-size:12px;color:var(--muted);margin-bottom:12px">5개 구간 모두에서 후보로 뽑힌 번호일수록 크게 표시됩니다.</p><div id="win_overlap"></div></div>
+</section>
 `;
 
 /* ============================================================
@@ -4368,6 +4385,56 @@ function flowRun(){
   $("flow_recent").innerHTML=`<div class="table-wrap"><table><thead><tr><th>회차</th><th>당첨번호</th><th>끝수</th></tr></thead><tbody>${rs.slice(-12).reverse().map(r=>{const es=[...new Set(r.nums.map(n=>n%10))].sort((a,b)=>a-b);return `<tr><td><b>${r.draw}회</b></td><td>${r.nums.map(n=>`<span class="our-ball r${rng(n)} tiny">${n}</span>`).join(" ")}</td><td>${es.map(e=>`<span class="tag" style="background:#e9eff8;color:#2b3c53;font-weight:800;margin-right:3px">${e}</span>`).join("")}</td></tr>`;}).join("")}</tbody></table></div>`;
 }
 
+/* ---------- 구간별 후보 18 ---------- */
+function winRun(){
+  const mode=$("win_mode").value;
+  const rs=rows();const latest=rs.length-1;
+  const last={};rs.forEach((r,i)=>r.nums.forEach(n=>last[n]=i));
+  const windows=[30,60,100,150,200];
+  const rng=n=>n<=10?1:n<=20?2:n<=30?3:n<=40?4:5;
+  const results={};
+  for(const w of windows){
+    const seg=rs.slice(-w);
+    const freq={};for(let n=1;n<=45;n++)freq[n]=0;
+    seg.forEach(r=>r.nums.forEach(n=>freq[n]++));
+    const maxF=Math.max(...Object.values(freq),1);
+    const scored=[];
+    for(let n=1;n<=45;n++){
+      const f=freq[n], since=latest-(last[n]??-1);
+      const fN=f/maxF;                        // 빈도 정규화 0~1
+      const sN=Math.min(since/w,1);           // 경과 정규화 0~1
+      let score;
+      if(mode==="freq")score=fN;              // 빈도 우선
+      else if(mode==="due")score=sN*0.7+fN*0.3; // 덜 나온 것 우선
+      else score=fN*0.5+sN*0.5;               // 균형
+      scored.push({n,f,since,score});
+    }
+    scored.sort((a,b)=>b.score-a.score||a.n-b.n);
+    results[w]=scored.slice(0,18).map(x=>x.n).sort((a,b)=>a-b);
+  }
+  // 구간별 카드 렌더
+  const modeLabel={freq:"구간 내 빈도 상위",hybrid:"빈도+흐름 균형",due:"덜 나온 흐름 우선"}[mode];
+  $("win_result").innerHTML=windows.map(w=>{
+    const nums=results[w];
+    return `<div class="panel"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="margin:0">최근 ${w}회차 기준 · 18개</h2><span style="font-size:12px;color:var(--muted)">${modeLabel}</span></div>
+      <div class="our-balls" style="gap:7px">${nums.map(n=>`<span class="our-ball r${rng(n)}" style="width:34px;height:34px;font-size:14px">${n}</span>`).join(" ")}</div>
+      <p style="font-size:12px;color:var(--muted);margin-top:10px">${nums.join(", ")}</p></div>`;
+  }).join("");
+  // 5개 구간 겹침 분석
+  const overlap={};for(let n=1;n<=45;n++)overlap[n]=0;
+  windows.forEach(w=>results[w].forEach(n=>overlap[n]++));
+  const byOverlap=[];for(let n=1;n<=45;n++)if(overlap[n]>0)byOverlap.push({n,c:overlap[n]});
+  byOverlap.sort((a,b)=>b.c-a.c||a.n-b.n);
+  const sizeFor=c=>c>=5?42:c===4?38:c===3?33:c===2?29:25;
+  const fontFor=c=>c>=5?17:c===4?15:c===3?14:13;
+  $("win_overlap").innerHTML=`<div class="our-balls" style="gap:8px;align-items:center">${byOverlap.map(x=>`<span class="our-ball r${rng(x.n)}" style="width:${sizeFor(x.c)}px;height:${sizeFor(x.c)}px;font-size:${fontFor(x.c)}px${x.c>=4?';box-shadow:inset 0 0 0 2px rgba(0,0,0,.9)':''}" title="${x.c}개 구간">${x.n}</span>`).join(" ")}</div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-size:12px;color:var(--muted)">
+      <span>◎ 5개 구간 모두: <b style="color:var(--text)">${byOverlap.filter(x=>x.c===5).map(x=>x.n).join(", ")||"없음"}</b></span>
+      <span>4개 구간: <b style="color:var(--text)">${byOverlap.filter(x=>x.c===4).map(x=>x.n).join(", ")||"없음"}</b></span>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px">공이 클수록 여러 구간에서 공통으로 뽑힌 번호입니다. 내부 검은 원 = 4개 이상 구간 공통.</p>`;
+}
+
 function init(){
   const nav=document.querySelector(".nav");
   // 원본 8버튼에 그룹 라벨 삽입
@@ -4375,18 +4442,19 @@ function init(){
   const lbl1=document.createElement("div");lbl1.className="nav-group-label";lbl1.textContent="패턴 분석";nav.insertBefore(lbl1,first);
   // 우리 그룹 라벨 + 버튼 추가
   const lbl2=document.createElement("div");lbl2.className="nav-group-label";lbl2.textContent="Ai365Lab 생성·도구";nav.appendChild(lbl2);
-  const ours=[["gen_pl","◇","패턴 랩"],["gen_make","✦","역대 구조 생성기"],["gen_pool","⊞","번호 조합기"],["gen_flow","≈","흐름 탐색기"],["gen_check","◎","당첨 조회"]];
+  const ours=[["gen_pl","◇","패턴 랩"],["gen_make","✦","역대 구조 생성기"],["gen_pool","⊞","번호 조합기"],["gen_flow","≈","흐름 탐색기"],["gen_win","◈","구간별 후보 18"],["gen_check","◎","당첨 조회"]];
   for(const[id,ic,label]of ours){const b=document.createElement("button");b.dataset.view=id;b.innerHTML=`<span class="nav-icon">${ic}</span><span class="nav-full">${label}</span>`;b.onclick=()=>switchView(id);nav.appendChild(b);}
   // 우리 뷰 HTML 삽입 (main 안, 푸터 앞)
   const main=document.querySelector(".main");const footer=main.querySelector(".site-footer");
   const wrap=document.createElement("div");wrap.innerHTML=OURVIEWS_HTML;while(wrap.firstChild)main.insertBefore(wrap.firstChild,footer);
   // switchView 확장: 우리 뷰 제목/최초 렌더
-  const OUR={gen_pl:"패턴 랩",gen_make:"역대 구조 생성기",gen_pool:"번호 조합기",gen_flow:"흐름 탐색기",gen_check:"당첨 조회"};
+  const OUR={gen_pl:"패턴 랩",gen_make:"역대 구조 생성기",gen_pool:"번호 조합기",gen_flow:"흐름 탐색기",gen_win:"구간별 후보 18",gen_check:"당첨 조회"};
   const origSwitch=window.switchView;
   window.switchView=function(id){
     origSwitch(id);
     if(OUR[id]){document.getElementById("pageTitle").textContent=OUR[id];document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===id));document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.view===id));}
     if(id==="gen_flow"&&!window.__flowInit){window.__flowInit=true;try{flowRun()}catch(e){}}
+    if(id==="gen_win"&&!window.__winInit){window.__winInit=true;try{winRun()}catch(e){}}
   };
   // 이벤트 바인딩
   $("pl_run").onclick=plRun;$("pl_mode").onchange=()=>{const m=$("pl_mode").value;$("pl_input").value=m==="gaps"?"5,7":m==="draw"?String(rows()[rows().length-1].draw):"3,8,15";};
@@ -4396,7 +4464,8 @@ function init(){
   $("ck_run").onclick=ckRun;$("ck_nums").addEventListener("keydown",e=>{if(e.key==="Enter")ckRun()});
   // 번호 조합기
   document.querySelectorAll(".pool-preset").forEach(btn=>btn.onclick=()=>{$("pool_count").value=btn.dataset.n;poolInfo();
-  $("flow_run").onclick=flowRun;$("flow_window").onchange=flowRun;});
+  $("flow_run").onclick=flowRun;$("flow_window").onchange=flowRun;
+  $("win_run").onclick=winRun;$("win_mode").onchange=winRun;});
   $("pool_nums").addEventListener("input",poolInfo);
   $("pool_count").addEventListener("input",poolInfo);
   $("pool_run").onclick=poolRun;
