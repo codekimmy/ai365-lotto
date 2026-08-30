@@ -4741,7 +4741,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 <script>
 (function(){
   function boot(){
-    if(!window.switchView||!(window.state&&state.rows)){return setTimeout(boot,120);}
+    if(typeof switchView==="undefined"||typeof state==="undefined"||!state.rows){return setTimeout(boot,120);}
     var nav=document.querySelector(".nav");
     if(document.querySelector('.nav button[data-view="chain"]'))return;
     var lbl=document.createElement("div");lbl.className="nav-group-label";lbl.textContent="예측 기법";nav.appendChild(lbl);
@@ -4756,7 +4756,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
         var t=document.getElementById("pageTitle");if(t)t.textContent="3단 체인 예측";
         document.querySelectorAll(".view").forEach(function(v){v.classList.toggle("active",v.id==="chain");});
         document.querySelectorAll(".nav button").forEach(function(x){x.classList.toggle("active",x.dataset.view==="chain");});
-        if(!window.__chainInit){window.__chainInit=true;chRun();}
+        try{chRun();}catch(e){}
       }
     };
     document.addEventListener("lotto:data-updated",function(){var a=document.querySelector(".view.active");if(a&&a.id==="chain")chRun();});
