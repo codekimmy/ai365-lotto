@@ -4742,6 +4742,11 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 (function(){
   function boot(){
     if(typeof switchView==="undefined"||typeof state==="undefined"||!state.rows){return setTimeout(boot,120);}
+    var mainEl=document.querySelector(".main"),secEl=document.getElementById("chain");
+    if(mainEl&&secEl&&secEl.parentNode!==mainEl){
+      var ft=mainEl.querySelector(".site-footer");
+      if(ft)mainEl.insertBefore(secEl,ft);else mainEl.appendChild(secEl);
+    }
     var nav=document.querySelector(".nav");
     if(document.querySelector('.nav button[data-view="chain"]'))return;
     var lbl=document.createElement("div");lbl.className="nav-group-label";lbl.textContent="예측 기법";nav.appendChild(lbl);
