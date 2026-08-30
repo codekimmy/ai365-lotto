@@ -4671,5 +4671,196 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     </div>
   </div>
 
+
+<!-- ===== 3단 체인 예측 (트리거 → 다음회차 → 실제추첨) 애드온 ===== -->
+<style>
+#chain .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+#chain .ch-controls{display:flex;gap:9px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px}
+#chain label.ch-l{font-size:12px;color:var(--muted)}
+#chain select,#chain input{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 9px}
+#chain .ch-case{border:1px solid var(--line);border-radius:12px;background:var(--panel2);padding:11px 13px;margin-bottom:9px}
+#chain .ch-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:3px 0}
+#chain .ch-tag{font-size:11px;color:var(--muted);min-width:74px}
+#chain .ch-draw{font-weight:800;min-width:66px}
+#chain .ch-hit{color:var(--good);font-weight:800;font-size:12px}
+#chain .ch-miss{color:var(--bad);font-weight:800;font-size:12px}
+#chain .ball.hi{outline:3px solid var(--accent2);outline-offset:1px}
+#chain .verdict{font-weight:800;padding:3px 10px;border-radius:20px;display:inline-block}
+#chain .v-strong{background:rgba(87,199,133,.18);color:var(--good)}
+#chain .v-weak{background:rgba(240,179,90,.18);color:var(--accent2)}
+#chain .v-none{background:rgba(239,113,107,.18);color:var(--bad)}
+#chain .pred{border:1px solid var(--accent);border-radius:14px;background:linear-gradient(145deg,rgba(86,182,194,.10),rgba(7,18,27,.6));padding:14px 15px;margin-bottom:16px}
+</style>
+
+<section class="view" id="chain">
+  <div class="panel">
+    <h2 style="margin-bottom:8px">3단 체인 예측 <span style="font-size:13px;color:var(--muted)">트리거 → 다음회차 → 실제추첨(T+2)</span></h2>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:14px">특정 조합(끝수 N개+ 또는 지정 번호쌍)이 뜬 회차를 트리거로 잡고, 바로 다음 회차의 <b>연결번호</b>가 그 다음 실제 추첨(T+2)에 등장했는지를 역대 전수로 검증합니다. 확률이 아니라 <b>실제 적중 사례</b>를 보여주는 도구입니다.</p>
+    <div class="ch-controls">
+      <label class="ch-l">트리거 종류<br>
+        <select id="ch_mode">
+          <option value="ending">같은 끝수 N개+</option>
+          <option value="combo">지정 번호쌍 포함</option>
+        </select>
+      </label>
+      <span id="ch_end_box" style="display:flex;gap:9px">
+        <label class="ch-l">끝수<br>
+          <select id="ch_digit">
+            <option>0</option><option>1</option><option selected>2</option><option>3</option><option>4</option>
+            <option>5</option><option>6</option><option>7</option><option>8</option><option>9</option>
+          </select>
+        </label>
+        <label class="ch-l">최소개수<br>
+          <select id="ch_count"><option>2</option><option selected>3</option><option>4</option></select>
+        </label>
+      </span>
+      <label class="ch-l" id="ch_num_box" style="display:none">지정 번호(쉼표)<br>
+        <input id="ch_nums" type="text" value="18,38" style="width:120px">
+      </label>
+      <label class="ch-l">T+2 검증기준<br>
+        <select id="ch_rel">
+          <option value="end">같은 끝수 재등장</option>
+          <option value="num">트리거 번호 직접재등장</option>
+          <option value="offset">±1 이웃 등장</option>
+        </select>
+      </label>
+      <button class="btn" id="ch_run" style="background:var(--accent);color:#fff;border:0">체인 분석</button>
+    </div>
+  </div>
+
+  <div id="ch_pred"></div>
+  <div id="ch_kpis" class="kpis"></div>
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <h2>역대 체인 전수</h2><span id="ch_meta" style="color:var(--muted);font-size:12px"></span>
+    </div>
+    <div id="ch_list"><p style="color:var(--muted)">체인 분석을 누르세요</p></div>
+  </div>
+</section>
+
+<script>
+(function(){
+  function boot(){
+    if(!window.switchView||!(window.state&&state.rows)){return setTimeout(boot,120);}
+    var nav=document.querySelector(".nav");
+    if(document.querySelector('.nav button[data-view="chain"]'))return;
+    var lbl=document.createElement("div");lbl.className="nav-group-label";lbl.textContent="예측 기법";nav.appendChild(lbl);
+    var b=document.createElement("button");b.dataset.view="chain";
+    b.innerHTML='<span class="nav-icon">⛓</span><span class="nav-full">3단 체인 예측</span><span class="nav-short">체인</span>';
+    b.onclick=function(){switchView("chain");};nav.appendChild(b);
+
+    var prev=window.switchView;
+    window.switchView=function(id){
+      prev(id);
+      if(id==="chain"){
+        var t=document.getElementById("pageTitle");if(t)t.textContent="3단 체인 예측";
+        document.querySelectorAll(".view").forEach(function(v){v.classList.toggle("active",v.id==="chain");});
+        document.querySelectorAll(".nav button").forEach(function(x){x.classList.toggle("active",x.dataset.view==="chain");});
+        if(!window.__chainInit){window.__chainInit=true;chRun();}
+      }
+    };
+    document.addEventListener("lotto:data-updated",function(){var a=document.querySelector(".view.active");if(a&&a.id==="chain")chRun();});
+
+    var $=function(i){return document.getElementById(i);};
+    function rc(n){return n<=10?"g0":n<=20?"g1":n<=30?"g2":n<=40?"g3":"g4";}
+    function ball(n,hi){return '<span class="ball rc '+rc(n)+(hi?" hi":"")+'">'+n+'</span>';}
+    function sortedRows(){return (state.rows||INITIAL.rows).slice().sort(function(a,b){return a.draw-b.draw;});}
+    function parseNums(s){return (s||"").split(",").map(function(x){return parseInt(x.trim(),10);}).filter(function(x){return x>=1&&x<=45;});}
+
+    function cfg(){
+      return {mode:$("ch_mode").value,rel:$("ch_rel").value,
+        digit:+$("ch_digit").value,k:+$("ch_count").value,set:parseNums($("ch_nums").value)};
+    }
+    function triggerOf(row,c){
+      if(c.mode==="ending"){var e=row.nums.filter(function(n){return n%10===c.digit;});return e.length>=c.k?e:null;}
+      return c.set.length&&c.set.every(function(n){return row.nums.indexOf(n)>=0;})?c.set.slice():null;
+    }
+    function relDigits(c){return c.mode==="ending"?[c.digit]:Array.from(new Set(c.set.map(function(n){return n%10;})));}
+    function relMatch(trig,row,c){
+      if(c.rel==="end"){var ds=relDigits(c);return row.nums.filter(function(n){return ds.indexOf(n%10)>=0;});}
+      if(c.rel==="num"){return row.nums.filter(function(n){return trig.indexOf(n)>=0;});}
+      return row.nums.filter(function(n){return trig.some(function(t){return Math.abs(t-n)===1;});});
+    }
+    function relLabel(c){return c.rel==="end"?"끝수":c.rel==="num"?"번호":"±1";}
+
+    function chRun(){
+      var c=cfg(),rows=sortedRows(),map={};rows.forEach(function(r){map[r.draw]=r;});
+      var lo=rows[0].draw,hi=rows[rows.length-1].draw;
+      var cases=[],t1=0,t2=0,both=0;
+      for(var d=lo;d<=hi-2;d++){
+        var T=map[d],B=map[d+1],C=map[d+2];if(!T||!B||!C)continue;
+        var tn=triggerOf(T,c);if(!tn)continue;
+        var mb=relMatch(tn,B,c),mc=relMatch(tn,C,c);
+        if(mb.length)t1++;if(mc.length)t2++;if(mb.length&&mc.length)both++;
+        cases.push({T:T,B:B,C:C,tn:tn,mb:mb,mc:mc});
+      }
+      var n=cases.length;
+      var rate=n?Math.round(t2/n*100):0;
+      var vClass=rate>=55?"v-strong":rate>=40?"v-weak":"v-none";
+      var vText=rate>=55?"근거 있음(강)":rate>=40?"근거 약함":"근거 없음";
+
+      // ---- 진행형 예측: 트리거=hi-1, 캐리어=hi, 타깃=hi+1 ----
+      var target=hi+1,Tt=map[hi-1],Ct=map[hi],ph="";
+      if(Tt&&Ct){
+        var tt=triggerOf(Tt,c);
+        if(!tt){
+          ph='<div class="pred"><b>'+target+'회 예측</b> · 이 트리거로는 <span class="ch-miss">신호 없음</span>'
+            +' <span style="color:var(--muted);font-size:12px">('+(hi-1)+'회에 트리거 미발동)</span></div>';
+        }else{
+          var cm=relMatch(tt,Ct,c);
+          if(!cm.length){
+            ph='<div class="pred"><b>'+target+'회 예측</b> · <span class="ch-miss">신호 끊김</span>'
+              +' <span style="color:var(--muted);font-size:12px">('+(hi-1)+'회 트리거 '+tt.join("·")+' → '+hi+'회에서 관계 끊김)</span></div>';
+          }else{
+            var fam=[];
+            if(c.rel==="end"){var ds=relDigits(c);for(var x=1;x<=45;x++)if(ds.indexOf(x%10)>=0)fam.push(x);}
+            else if(c.rel==="num"){fam=cm.slice();}
+            else{var st={};cm.forEach(function(v){[v-1,v+1].forEach(function(w){if(w>=1&&w<=45)st[w]=1;});});fam=Object.keys(st).map(Number).sort(function(a,b){return a-b;});}
+            ph='<div class="pred"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">'
+              +'<b>'+target+'회 예측 · <span class="ch-hit">신호 살아있음</span></b>'
+              +'<span style="color:var(--muted);font-size:12px">'+(hi-1)+'회 트리거 '+tt.join("·")+' → '+hi+'회 연결번호 '+cm.join("·")+'</span></div>'
+              +'<div class="ch-row" style="margin-top:8px">'+fam.map(function(v){return ball(v,cm.indexOf(v)>=0);}).join(" ")+'</div>'
+              +'<p style="font-size:12px;color:var(--muted);margin:6px 0 0">굵게 표시된 공 = 직전회차 연결번호(이월 유력). 나머지는 같은 '+relLabel(c)+' 계열 후보.</p></div>';
+          }
+        }
+      }
+      $("ch_pred").innerHTML=ph;
+
+      $("ch_kpis").innerHTML=[
+        ["트리거 건수",n,"T+2까지 개표"],
+        ["다음회차 재등장",t1+"/"+n,n?Math.round(t1/n*100)+"%":"—"],
+        ["실제추첨(T+2) 재등장",t2+"/"+n,rate+"%"],
+        ["판정",'<span class="verdict '+vClass+'">'+vText+"</span>",rate+"% 기준"]
+      ].map(function(x){return '<div class="card"><div class="label">'+x[0]+'</div><div class="value">'+x[1]+'</div><div class="sub">'+x[2]+'</div></div>';}).join("");
+
+      var desc=c.mode==="ending"?("끝수 "+c.digit+" × "+c.k+"개+"):("번호 "+c.set.join("·")+" 포함");
+      $("ch_meta").textContent=desc+" · 검증기준 "+relLabel(c)+" · 최근 "+Math.min(n,14)+"건 표시";
+
+      var show=cases.slice(-14).reverse();
+      $("ch_list").innerHTML=show.length?show.map(function(cs){
+        var tset={};cs.tn.forEach(function(v){tset[v]=1;});
+        function line(tag,row,marks){
+          var ms={};marks.forEach(function(v){ms[v]=1;});
+          var hit=marks.length?'<span class="ch-hit">◎ '+marks.join(",")+'</span>':'<span class="ch-miss">×</span>';
+          return '<div class="ch-row"><span class="ch-tag">'+tag+'</span><span class="ch-draw">'+row.draw+'회</span>'
+            +row.nums.map(function(v){return ball(v,ms[v]||(tag==="트리거"&&tset[v]));}).join(" ")+' '+hit+'</div>';
+        }
+        return '<div class="ch-case">'
+          +line("트리거",cs.T,[])
+          +line("다음회차",cs.B,cs.mb)
+          +line("실제추첨",cs.C,cs.mc)+'</div>';
+      }).join(""):'<p style="color:var(--bad)">해당 조건의 트리거가 없습니다</p>';
+    }
+
+    function syncMode(){var m=$("ch_mode").value;$("ch_end_box").style.display=m==="ending"?"flex":"none";$("ch_num_box").style.display=m==="combo"?"block":"none";}
+    $("ch_mode").onchange=function(){syncMode();};
+    $("ch_run").onclick=chRun;
+    $("ch_nums").addEventListener("keydown",function(e){if(e.key==="Enter")chRun();});
+    syncMode();
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
+})();
+</script>
+
 </body>
 </html>
