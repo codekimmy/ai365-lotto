@@ -4908,8 +4908,8 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 .rc-meta{min-width:52px;font-size:10px;color:var(--muted);line-height:1.15}
 .rc-meta b{display:block;color:var(--text);font-size:12px}
 .rc-balls{display:flex;gap:3px;flex-wrap:wrap}
-.mini{width:20px;height:20px;font-size:10px;border-radius:50%;display:grid;place-items:center;font-weight:800}
-.mini.b{width:20px;height:20px;opacity:.85;box-shadow:0 0 0 1px var(--line) inset}
+.lpmn{width:20px;height:20px;font-size:10px;border-radius:50%;display:grid;place-items:center;font-weight:800}
+.lpmn.b{width:20px;height:20px;opacity:.85;box-shadow:0 0 0 1px var(--line) inset}
 
 .pd-item{padding:8px 0;border-bottom:1px dashed rgba(255,255,255,.07)}
 .pd-item:last-child{border-bottom:0}
@@ -4966,7 +4966,8 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       "#topnav .nav button:hover{background:rgba(255,255,255,.10)!important;color:#fff!important}"+
       "#topnav .nav button.active{background:#17b8a6!important;color:#04241f!important;border-color:#17b8a6!important;font-weight:800!important}"+
       "#topnav .nav .nav-group-label{color:#93a7b4!important}"+
-      "#topnav .nav button .nav-icon{opacity:.9}";
+      "#topnav .nav button .nav-icon{opacity:.9}"+
+      ".main .mini,.main .sub,.main .desc,.main .notice,.main .idea p,.main .caption{font-weight:400!important}";
     document.head.appendChild(st);
 
     // 레이아웃을 인라인 !important로 강제 (가로 배분 · 세로스택 방지)
@@ -5025,7 +5026,7 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     function sorted(){return (state.rows||INITIAL.rows).slice().sort(function(a,b){return a.draw-b.draw;});}
     function col(n){return n<=10?"#fbc400":n<=20?"#69c8f2":n<=30?"#ff7272":n<=40?"#b6bec8":"#b0d840";}
     function txt(n){return (n<=10||n>40)?"#3a2f00":"#fff";}
-    function mini(n,bonus){return '<span class="mini'+(bonus?" b":"")+'" style="background:'+col(n)+';color:'+txt(n)+'">'+n+'</span>';}
+    function mini(n,bonus){return '<span class="lpmn'+(bonus?" b":"")+'" style="background:'+col(n)+';color:'+txt(n)+'">'+n+'</span>';}
     function fmtDate(d){return d?String(d).replace(/-/g,"."):"";}
 
     // ── 최신 회차 마킹 용지 ──
