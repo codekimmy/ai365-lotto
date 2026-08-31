@@ -4947,6 +4947,40 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     if(nav)top.appendChild(nav);           // 핸들러 유지된 채 이동
     document.body.insertBefore(top,app);
 
+    // 스타일시트 경합 방지: 핵심 레이아웃을 인라인 !important로 강제 (가로 2~3줄 컴팩트)
+    function SP(el,k,v){if(el)el.style.setProperty(k,v,"important");}
+    SP(top,"display","flex");SP(top,"flex-wrap","wrap");SP(top,"align-items","center");
+    SP(top,"gap","4px 6px");SP(top,"max-height","118px");SP(top,"overflow-y","auto");
+    if(nav){SP(nav,"display","flex");SP(nav,"flex-wrap","wrap");SP(nav,"gap","4px");
+      SP(nav,"width","auto");SP(nav,"height","auto");SP(nav,"flex","1 1 auto");SP(nav,"overflow","visible");}
+    function enforceBtns(){
+      if(!nav)return;
+      nav.querySelectorAll("button").forEach(function(b){
+        SP(b,"width","auto");SP(b,"margin","0");SP(b,"padding","6px 9px");
+        SP(b,"font-size","12px");SP(b,"white-space","nowrap");SP(b,"border-radius","8px");
+        SP(b,"display","inline-flex");SP(b,"align-items","center");SP(b,"gap","4px");
+        var full=b.querySelector(".nav-full"),sh=b.querySelector(".nav-short");
+        if(sh)sh.style.display="none";if(full)full.style.display="inline";
+      });
+      nav.querySelectorAll(".nav-group-label").forEach(function(l){
+        SP(l,"font-size","9px");SP(l,"padding","0 3px 0 7px");SP(l,"margin","0");
+        SP(l,"border-left","1px solid var(--line)");SP(l,"white-space","nowrap");
+        SP(l,"display","inline-flex");SP(l,"align-items","center");SP(l,"width","auto");
+      });
+    }
+    enforceBtns();
+    if(nav&&window.MutationObserver){
+      new MutationObserver(function(){enforceBtns();fitSide();}).observe(nav,{childList:true});
+    }
+    [400,900,1600].forEach(function(ms){setTimeout(function(){enforceBtns();fitSide();},ms);});
+    // 사이드바 상단 오프셋을 실제 메뉴 높이에 맞춤
+    function fitSide(){
+      var h=top.offsetHeight||52;
+      SP(side,"top",h+"px");SP(side,"max-height","calc(100vh - "+(h+6)+"px)");
+    }
+    fitSide();window.addEventListener("resize",function(){enforceBtns();fitSide();});
+    setTimeout(fitSide,300);
+
     // 2) 좌측 사이드바 → 정보패널로 전환
     if(brand)brand.style.display="none";
     if(note)note.style.display="none";
