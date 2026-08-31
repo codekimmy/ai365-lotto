@@ -5006,7 +5006,11 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 
     // 2) 좌측 사이드바 → 정보패널로 전환
     if(brand)brand.style.display="none";
-    if(note)note.style.display="none";
+    if(note){SP(note,"display","block");SP(note,"border","0");SP(note,"box-shadow","none");
+      SP(note,"background","rgba(46,196,182,.12)");SP(note,"color","#d3ece7");
+      SP(note,"border-radius","10px");SP(note,"padding","9px 11px");SP(note,"margin","0 0 12px 0");
+      SP(note,"font-size","11px");SP(note,"line-height","1.5");}
+    SP(side,"border-top","0");SP(side,"border-right","0");SP(side,"box-shadow","none");
     var host=document.createElement("div");host.id="sidewidgets";
     host.innerHTML=
       '<div class="sw" id="w-slip"></div>'+
