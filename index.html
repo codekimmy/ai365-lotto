@@ -5024,9 +5024,9 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 
     var $=function(i){return document.getElementById(i);};
     function sorted(){return (state.rows||INITIAL.rows).slice().sort(function(a,b){return a.draw-b.draw;});}
-    function col(n){return n<=10?"#fbc400":n<=20?"#69c8f2":n<=30?"#ff7272":n<=40?"#b6bec8":"#b0d840";}
-    function txt(n){return (n<=10||n>40)?"#3a2f00":"#fff";}
-    function mini(n,bonus){return '<span class="lpmn'+(bonus?" b":"")+'" style="background:'+col(n)+';color:'+txt(n)+'">'+n+'</span>';}
+    function col(n){return n<=10?"#f4b400":n<=20?"#2f6fd0":n<=30?"#e0533d":n<=40?"#5a6472":"#188a4d";}
+    function txt(n){return n<=10?"#3a2c00":"#fff";}
+    function mini(n,bonus){return bonus?'<span class="lpmn b">'+n+'</span>':'<span class="lpmn" style="background:'+col(n)+';color:'+txt(n)+'">'+n+'</span>';}
     function fmtDate(d){return d?String(d).replace(/-/g,"."):"";}
 
     // ── 최신 회차 마킹 용지 ──
@@ -5093,6 +5093,30 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
 })();
 </script>
+
+
+<!-- ===== 번호 볼 통일: 십의자리 팔레트 · 원형 · 점선 보너스 제거 (최종 오버라이드) ===== -->
+<style id="unify-balls">
+/* 모든 번호 볼 = 원형, 실선만 */
+.ball,.our-ball,.research-ball,.prediction-ball,.set-ball,.cooling-rank,.lpmn,.official-set .ball{
+  border-radius:50%!important;box-sizing:border-box!important;
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  font-weight:800!important}
+/* 십의자리 통일 팔레트 (노랑/파랑/빨강/회색/초록) — g·rc·our-ball 전 변형 커버 */
+.ball.g0,.ball.rc.g0,.our-ball.r1{background:#f4b400!important;color:#3a2c00!important;border:0!important}
+.ball.g1,.ball.rc.g1,.our-ball.r2{background:#2f6fd0!important;color:#fff!important;border:0!important}
+.ball.g2,.ball.rc.g2,.our-ball.r3{background:#e0533d!important;color:#fff!important;border:0!important}
+.ball.g3,.ball.rc.g3,.our-ball.r4{background:#5a6472!important;color:#fff!important;border:0!important}
+.ball.g4,.ball.rc.g4,.our-ball.r5{background:#188a4d!important;color:#fff!important;border:0!important}
+/* 강조(선택·포커스·적중) = 십의자리 색 유지 + 실선 링만 (앰버 덮어쓰기 방지) */
+.ball.selected,.ball.focus,.ball.rc.is-focus,.ball.rc.is-cool,.ball.hit,
+.our-ball.hit,.our-ball.skel{
+  box-shadow:0 0 0 3px #ffce73!important;outline:none!important;border:0!important}
+/* 보너스 = 점선 금지, 흰 바탕 + 실선 테두리로 통일 */
+.ball.bonus-ball,.ball.rc.bonus-num,.lpmn.b{
+  background:#ffffff!important;color:#3a4658!important;border:2px solid #9aa7b6!important;
+  border-radius:50%!important;box-shadow:none!important;opacity:1!important}
+</style>
 
 </body>
 </html>
