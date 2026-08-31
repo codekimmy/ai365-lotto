@@ -4972,24 +4972,23 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     // 레이아웃을 인라인 !important로 강제 (가로 배분 · 세로스택 방지)
     SP(top,"display","flex");SP(top,"flex-wrap","nowrap");SP(top,"align-items","center");
     SP(top,"gap","6px");SP(top,"max-height","140px");SP(top,"overflow-y","auto");
-    if(nav){SP(nav,"display","flex");SP(nav,"flex-direction","row");SP(nav,"flex-wrap","wrap");
-      SP(nav,"align-content","flex-start");SP(nav,"align-items","stretch");SP(nav,"gap","4px");
-      SP(nav,"width","auto");SP(nav,"height","auto");SP(nav,"flex","1 1 auto");
-      SP(nav,"grid-template-columns","none");SP(nav,"overflow","visible");}
+    if(nav){SP(nav,"display","grid");
+      SP(nav,"grid-template-columns","repeat(auto-fill,minmax(138px,1fr))");
+      SP(nav,"grid-auto-rows","34px");SP(nav,"gap","5px");
+      SP(nav,"align-items","stretch");SP(nav,"justify-items","stretch");
+      SP(nav,"width","auto");SP(nav,"height","auto");SP(nav,"flex","1 1 auto");SP(nav,"overflow","visible");}
     function enforceBtns(){
       if(!nav)return;
       nav.querySelectorAll("button").forEach(function(b){
-        SP(b,"width","auto");SP(b,"min-width","64px");SP(b,"flex","1 1 auto");   // 좌우로 꽉 채워 배분
-        SP(b,"margin","0");SP(b,"padding","7px 8px");SP(b,"font-size","11.5px");
-        SP(b,"white-space","nowrap");SP(b,"border-radius","8px");
-        SP(b,"display","inline-flex");SP(b,"align-items","center");SP(b,"justify-content","center");SP(b,"gap","4px");
+        SP(b,"width","100%");SP(b,"height","100%");SP(b,"flex","none");SP(b,"margin","0");
+        SP(b,"padding","0 8px");SP(b,"font-size","11.5px");SP(b,"border-radius","7px");
+        SP(b,"white-space","nowrap");SP(b,"overflow","hidden");SP(b,"text-overflow","ellipsis");
+        SP(b,"display","flex");SP(b,"align-items","center");SP(b,"justify-content","center");SP(b,"gap","5px");
         var full=b.querySelector(".nav-full"),sh=b.querySelector(".nav-short");
         if(sh)sh.style.display="none";if(full)full.style.display="inline";
       });
       nav.querySelectorAll(".nav-group-label").forEach(function(l){
-        SP(l,"font-size","9px");SP(l,"padding","0 2px 0 6px");SP(l,"margin","0");SP(l,"flex","0 0 auto");
-        SP(l,"border-left","1px solid var(--line)");SP(l,"white-space","nowrap");
-        SP(l,"display","inline-flex");SP(l,"align-items","center");SP(l,"width","auto");
+        SP(l,"display","none");   // 그룹 라벨 숨김
       });
     }
     enforceBtns();
