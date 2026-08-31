@@ -5122,5 +5122,105 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 #sidewidgets .ball.rc.bonus-num{width:22px!important;height:22px!important;font-size:9px!important}
 </style>
 
+
+<!-- ===== 회차별 번호 분포표 (1~45 그리드, 당첨=주황) ===== -->
+<style id="numgrid-style">
+#numgrid .ng-controls{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px}
+#numgrid .ng-controls label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+#numgrid .ng-controls input{width:96px;background:#fff;border:1px solid #d7deea;border-radius:8px;padding:7px 9px;color:#2b3c53;font-size:13px}
+#numgrid .ng-btn{background:#f5a623;color:#3a2600;border:0;border-radius:8px;padding:8px 14px;font-weight:800;cursor:pointer}
+#numgrid .ng-btn.sec{background:#eef2f8;color:#2b3c53}
+#numgrid .ng-meta{color:var(--muted);font-size:12px;margin-left:auto}
+#numgrid .ng-wrap{overflow:auto;max-height:70vh;border:1px solid #e3e8f0;border-radius:10px;background:#fff}
+#numgrid table{border-collapse:collapse;font-size:11px;white-space:nowrap;width:100%}
+#numgrid th,#numgrid td{border:1px solid #e6ebf3;text-align:center;height:24px;min-width:23px;padding:0;color:#33415a}
+#numgrid thead th{position:sticky;top:0;z-index:2;background:#f3f6fb;font-weight:800;color:#2b3c53}
+#numgrid th.ng-head-meta,#numgrid td.ng-meta{min-width:auto;padding:0 10px;text-align:left;white-space:nowrap;position:sticky;left:0;background:#fff;z-index:1}
+#numgrid thead th.ng-head-meta{z-index:3;background:#f3f6fb}
+#numgrid td.ng-draw{font-weight:800;color:#1f2c40}
+#numgrid td.ng-date{color:#6b7787}
+#numgrid td.win{background:#f5a623;color:#3a2600;font-weight:800}
+#numgrid td.bon{box-shadow:inset 0 0 0 2px #f5a623;color:#a86a0a;font-weight:800}
+#numgrid tbody tr:hover td{background:#fafcff}
+#numgrid tbody tr:hover td.win{background:#f5a623}
+</style>
+
+<section class="view" id="numgrid">
+  <div class="panel">
+    <h2 style="margin-bottom:6px">회차별 번호 분포표</h2>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:14px">각 회차의 당첨번호를 1~45 격자에 <b>주황색</b>으로 표시합니다. 기본은 최근 20회차이며, 회차 구간을 지정하면 그 구간만 표시됩니다. (보너스는 주황 테두리)</p>
+    <div class="ng-controls">
+      <label>시작 회차<input id="ng_start" type="number" min="1" placeholder="예: 1200"></label>
+      <label>끝 회차<input id="ng_end" type="number" min="1" placeholder="예: 1239"></label>
+      <button class="ng-btn" id="ng_apply">구간 적용</button>
+      <button class="ng-btn sec" id="ng_recent">최근 20회</button>
+      <span class="ng-meta" id="ng_meta"></span>
+    </div>
+    <div class="ng-wrap"><table id="ng_table"></table></div>
+  </div>
+</section>
+
+<script>
+(function(){
+  function boot(){
+    if(typeof switchView==="undefined"||typeof state==="undefined"||!state.rows){return setTimeout(boot,140);}
+    if(document.querySelector('.nav button[data-view="numgrid"]'))return;
+    var main=document.querySelector(".main"),sec=document.getElementById("numgrid");
+    if(main&&sec&&sec.parentNode!==main){var ft=main.querySelector(".site-footer");ft?main.insertBefore(sec,ft):main.appendChild(sec);}
+    var nav=document.querySelector(".nav");
+    var b=document.createElement("button");b.dataset.view="numgrid";
+    b.innerHTML='<span class="nav-icon">▦</span><span class="nav-full">회차별 분포표</span><span class="nav-short">분포표</span>';
+    b.onclick=function(){switchView("numgrid");};nav.appendChild(b);
+
+    var prev=window.switchView;
+    window.switchView=function(id){
+      prev(id);
+      if(id==="numgrid"){
+        var t=document.getElementById("pageTitle");if(t)t.textContent="회차별 분포표";
+        document.querySelectorAll(".view").forEach(function(v){v.classList.toggle("active",v.id==="numgrid");});
+        document.querySelectorAll(".nav button").forEach(function(x){x.classList.toggle("active",x.dataset.view==="numgrid");});
+        try{render();}catch(e){}
+      }
+    };
+    document.addEventListener("lotto:data-updated",function(){var a=document.querySelector(".view.active");if(a&&a.id==="numgrid")render();});
+
+    var $=function(i){return document.getElementById(i);};
+    function sorted(){return (state.rows||INITIAL.rows).slice().sort(function(a,b){return a.draw-b.draw;});}
+
+    function render(){
+      var rows=sorted();if(!rows.length)return;
+      var lo=rows[0].draw,hi=rows[rows.length-1].draw;
+      var s=parseInt($("ng_start").value,10),e=parseInt($("ng_end").value,10),list,label;
+      if(s&&e){var a=Math.min(s,e),b2=Math.max(s,e);list=rows.filter(function(r){return r.draw>=a&&r.draw<=b2;});label=a+"~"+b2+"회 ("+list.length+"회차)";}
+      else{list=rows.slice(-20);label="최근 20회차 ("+(list.length?list[0].draw+"~"+list[list.length-1].draw:"")+")";}
+      $("ng_meta").textContent=list.length?label:"해당 구간 데이터 없음";
+
+      var head='<thead><tr><th class="ng-head-meta">회차</th><th>추첨일</th>';
+      for(var n=1;n<=45;n++)head+='<th>'+n+'</th>';
+      head+='</tr></thead>';
+
+      var body='<tbody>';
+      list.forEach(function(r){
+        var win={};r.nums.forEach(function(n){win[n]=1;});
+        body+='<tr><td class="ng-meta ng-draw">'+r.draw+'회</td><td class="ng-date">'+(r.date||'')+'</td>';
+        for(var n=1;n<=45;n++){
+          if(win[n])body+='<td class="win">'+n+'</td>';
+          else if(n===r.bonus)body+='<td class="bon">'+n+'</td>';
+          else body+='<td></td>';
+        }
+        body+='</tr>';
+      });
+      body+='</tbody>';
+      $("ng_table").innerHTML=head+body;
+    }
+
+    $("ng_apply").onclick=render;
+    $("ng_recent").onclick=function(){$("ng_start").value="";$("ng_end").value="";render();};
+    ["ng_start","ng_end"].forEach(function(id){$(id).addEventListener("keydown",function(ev){if(ev.key==="Enter")render();});});
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
+})();
+</script>
+
 </body>
 </html>
