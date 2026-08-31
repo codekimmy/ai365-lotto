@@ -5026,7 +5026,8 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     function sorted(){return (state.rows||INITIAL.rows).slice().sort(function(a,b){return a.draw-b.draw;});}
     function col(n){return n<=10?"#f4b400":n<=20?"#2f6fd0":n<=30?"#e0533d":n<=40?"#5a6472":"#188a4d";}
     function txt(n){return n<=10?"#3a2c00":"#fff";}
-    function mini(n,bonus){return bonus?'<span class="lpmn b">'+n+'</span>':'<span class="lpmn" style="background:'+col(n)+';color:'+txt(n)+'">'+n+'</span>';}
+    function grp(n){return n<=10?"g0":n<=20?"g1":n<=30?"g2":n<=40?"g3":"g4";}
+    function mini(n,bonus){return bonus?'<span class="ball rc bonus-num">'+n+'</span>':'<span class="ball rc '+grp(n)+'">'+n+'</span>';}
     function fmtDate(d){return d?String(d).replace(/-/g,"."):"";}
 
     // ── 최신 회차 마킹 용지 ──
@@ -5116,6 +5117,9 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 .ball.bonus-ball,.ball.rc.bonus-num,.lpmn.b{
   background:#ffffff!important;color:#3a4658!important;border:2px solid #9aa7b6!important;
   border-radius:50%!important;box-shadow:none!important;opacity:1!important}
+/* 사이드바 볼은 본문과 같은 팔레트, 크기만 축소 */
+#sidewidgets .ball.rc{width:22px!important;height:22px!important;min-width:22px!important;font-size:10px!important;margin:0!important}
+#sidewidgets .ball.rc.bonus-num{width:22px!important;height:22px!important;font-size:9px!important}
 </style>
 
 </body>
