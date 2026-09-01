@@ -5634,5 +5634,73 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 })();
 </script>
 
+
+<!-- ===== 회차별 번호판: 빈 번호판(직접 선택/지우기) ===== -->
+<style id="nbk-style">
+#nbkPanel .nbk-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+#nbkPanel .nbk-btn{background:#2fb3a4;color:#fff;border:0;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer}
+#nbkPanel .nbk-btn.sec{background:#eef2f8;color:#2b3c53}
+#nbkPanel .nbk-count{color:var(--muted);font-size:13px;margin-left:auto}
+#nbkPanel .nbk-board{display:none}
+#nbkPanel .nbk-board.on{display:block}
+#nbkPanel .nbk-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-width:430px}
+#nbkPanel .nbk-c{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:14px;
+  border-radius:8px;background:#d6deea;color:#566171;font-weight:700;cursor:pointer;border:0;user-select:none;transition:transform .05s}
+#nbkPanel .nbk-c:hover{filter:brightness(.96)}
+#nbkPanel .nbk-c:active{transform:scale(.94)}
+#nbkPanel .nbk-c.sel.g0{background:#f4b400;color:#3a2c00}
+#nbkPanel .nbk-c.sel.g1{background:#2f6fd0;color:#fff}
+#nbkPanel .nbk-c.sel.g2{background:#e0533d;color:#fff}
+#nbkPanel .nbk-c.sel.g3{background:#5a6472;color:#fff}
+#nbkPanel .nbk-c.sel.g4{background:#188a4d;color:#fff}
+#nbkPanel .nbk-picked{margin-top:12px;font-size:13px;color:#2b3c53}
+#nbkPanel .nbk-picked .ball.rc{width:26px!important;height:26px!important;min-width:26px!important;font-size:12px!important;margin:2px}
+</style>
+<script>
+(function(){
+  function boot(){
+    var host=document.getElementById("numboard");
+    if(!host){return setTimeout(boot,180);}
+    if(document.getElementById("nbkPanel"))return;
+    var $=function(i){return document.getElementById(i);};
+    function grp(n){return n<=10?"g0":n<=20?"g1":n<=30?"g2":n<=40?"g3":"g4";}
+
+    var panel=document.createElement("div");panel.className="panel";panel.id="nbkPanel";
+    var cells="";for(var n=1;n<=45;n++)cells+='<button type="button" class="nbk-c '+grp(n)+'" data-n="'+n+'">'+n+'</button>';
+    panel.innerHTML=
+      '<div class="nbk-tools">'+
+        '<button class="nbk-btn" id="nbk_toggle">✏️ 빈 번호판 열기</button>'+
+        '<button class="nbk-btn sec" id="nbk_clear">전체 지우기</button>'+
+        '<button class="nbk-btn sec" id="nbk_copy">선택 복사</button>'+
+        '<span class="nbk-count" id="nbk_count">선택 0개</span>'+
+      '</div>'+
+      '<div class="nbk-board" id="nbk_board">'+
+        '<div class="nbk-grid">'+cells+'</div>'+
+        '<div class="nbk-picked" id="nbk_picked"><span style="color:var(--muted)">번호를 클릭해 선택하세요. 다시 누르면 해제됩니다.</span></div>'+
+      '</div>';
+    // 번호판 갤러리 위에 배치
+    var firstPanel=host.querySelector(".panel");
+    if(firstPanel&&firstPanel.nextSibling)host.insertBefore(panel,firstPanel.nextSibling);else host.appendChild(panel);
+
+    var sel={};
+    function refresh(){
+      var arr=Object.keys(sel).map(Number).sort(function(a,b){return a-b;});
+      $("nbk_count").textContent="선택 "+arr.length+"개";
+      $("nbk_picked").innerHTML=arr.length
+        ? arr.map(function(n){return '<span class="ball rc '+grp(n)+'">'+n+'</span>';}).join("")
+        : '<span style="color:var(--muted)">번호를 클릭해 선택하세요. 다시 누르면 해제됩니다.</span>';
+    }
+    panel.querySelectorAll(".nbk-c").forEach(function(b){
+      b.onclick=function(){var n=+b.dataset.n;if(sel[n]){delete sel[n];b.classList.remove("sel");}else{sel[n]=1;b.classList.add("sel");}refresh();};
+    });
+    $("nbk_toggle").onclick=function(){var bd=$("nbk_board");var on=bd.classList.toggle("on");$("nbk_toggle").textContent=on?"✏️ 빈 번호판 닫기":"✏️ 빈 번호판 열기";};
+    $("nbk_clear").onclick=function(){sel={};panel.querySelectorAll(".nbk-c.sel").forEach(function(b){b.classList.remove("sel");});refresh();};
+    $("nbk_copy").onclick=function(){var arr=Object.keys(sel).map(Number).sort(function(a,b){return a-b;});if(!arr.length)return;if(navigator.clipboard)navigator.clipboard.writeText(arr.join(", "));var b=$("nbk_copy");b.textContent="복사됨!";setTimeout(function(){b.textContent="선택 복사";},1200);};
+    refresh();
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
+})();
+</script>
+
 </body>
 </html>
