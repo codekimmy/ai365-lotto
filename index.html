@@ -5528,5 +5528,103 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 })();
 </script>
 
+
+
+<!-- ===== 번호 조합기: 휠(부분 커버) 조합 · 자립형 ===== -->
+<style id="wheel-style">
+#wheelPanel .wl-tickets{display:flex;flex-direction:column;gap:5px;max-height:420px;overflow:auto}
+#wheelPanel .wl-row{display:flex;align-items:center;gap:6px}
+#wheelPanel .wl-idx{min-width:42px;color:var(--muted);font-size:11px}
+#wheelPanel .wl-row .ball.rc{width:24px!important;height:24px!important;min-width:24px!important;font-size:11px!important}
+#wheelPanel .wl-btn{background:#eef2f8;color:#2b3c53;border:0;border-radius:8px;padding:7px 12px;font-weight:700;cursor:pointer}
+</style>
+<script>
+(function(){
+  function boot(){
+    var gp=document.getElementById("gen_pool"),poolIn=document.getElementById("pool_nums"),kpis=document.getElementById("pool_kpis");
+    if(!gp||!poolIn||!kpis){return setTimeout(boot,180);}
+    if(document.getElementById("wheelPanel"))return;
+    var $=function(i){return document.getElementById(i);};
+
+    var wheel=document.createElement("div");wheel.className="panel";wheel.id="wheelPanel";
+    wheel.innerHTML=
+      '<h2 style="margin-bottom:6px">휠(부분 커버) 조합</h2>'+
+      '<p style="color:var(--muted);font-size:13px;margin-bottom:12px">위 <b>번호 풀</b> 안에서 상위 등수를 노리는 조합법입니다. 당첨 6개가 지정한 범위(코어/뱅커) 안에 다 들어있을 때만 보장이 성립하는 참고용 방식입니다.</p>'+
+      '<div class="field"><label>휠 방식</label>'+
+        '<select id="wheel_mode">'+
+          '<option value="banker">뱅커 고정형 — 핵심 몇 개 고정 + 나머지 전부 조합</option>'+
+          '<option value="core">코어 전체휠 — 풀 전체를 6개씩 완전 조합</option>'+
+        '</select></div>'+
+      '<div class="field" id="wheel_banker_box"><label>고정(뱅커) 번호 · 풀 안에서 1~5개, 쉼표</label>'+
+        '<input id="wheel_bankers" type="text" placeholder="예: 7,22"></div>'+
+      '<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">'+
+        '<button class="btn" id="wheel_run" style="background:var(--accent);color:#fff;border:0">휠 생성</button>'+
+        '<button class="wl-btn" id="wheel_dl" disabled>CSV 다운로드</button>'+
+        '<button class="wl-btn" id="wheel_cp" disabled>전체 복사</button></div>'+
+      '<div id="wheel_note" style="font-size:12.5px;color:var(--muted);margin-bottom:10px"></div>'+
+      '<div id="wheel_kpis" class="kpis" style="margin-bottom:10px"></div>'+
+      '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><b>생성된 휠 조합</b><span id="wheel_lmeta" style="color:var(--muted);font-size:12px"></span></div>'+
+      '<div id="wheel_list"><p style="color:var(--muted);font-size:13px">방식을 고르고 [휠 생성]을 누르세요</p></div>';
+    kpis.parentNode.insertBefore(wheel,kpis);
+
+    function syncMode(){$("wheel_banker_box").style.display=$("wheel_mode").value==="banker"?"block":"none";}
+    $("wheel_mode").onchange=syncMode;syncMode();
+
+    function parsePool(){var a=(poolIn.value||"").split(",").map(function(s){return parseInt(s.trim(),10);}).filter(function(x){return x>=1&&x<=45;});return a.filter(function(n,i){return a.indexOf(n)===i;}).sort(function(x,y){return x-y;});}
+    function ncr(n,r){if(r<0||r>n)return 0;r=Math.min(r,n-r);var x=1;for(var i=0;i<r;i++)x=x*(n-i)/(i+1);return Math.round(x);}
+    function comb(arr,k){var res=[],n=arr.length,idx=[];if(k<0||k>n)return res;for(var i=0;i<k;i++)idx.push(i);
+      while(true){var c=[];for(var j=0;j<k;j++)c.push(arr[idx[j]]);res.push(c);
+        var p=k-1;while(p>=0&&idx[p]===n-k+p)p--;if(p<0)break;idx[p]++;for(var q=p+1;q<k;q++)idx[q]=idx[q-1]+1;}
+      return res;}
+    function grp(n){return n<=10?"g0":n<=20?"g1":n<=30?"g2":n<=40?"g3":"g4";}
+    function ball(n){return '<span class="ball rc '+grp(n)+'">'+n+'</span>';}
+
+    var LIST=[];
+    function render(out,note,mode,pool){
+      LIST=out;
+      $("wheel_kpis").innerHTML=[
+        ["휠 조합수",out.length.toLocaleString(),mode==="core"?"코어 전체휠":"뱅커 고정형"],
+        ["사용한 풀",pool.length+"개",pool.join(", ")],
+        ["가능 최대",ncr(pool.length,6).toLocaleString()+"개","풀 전체 6개 조합"],
+        ["보장 전제","범위 내 6개","당첨수가 코어/뱅커 안에 있을 때만"]
+      ].map(function(x){return '<div class="card"><div class="label">'+x[0]+'</div><div class="value">'+x[1]+'</div><div class="sub">'+x[2]+'</div></div>';}).join("");
+      var show=Math.min(out.length,500);
+      $("wheel_lmeta").textContent=out.length.toLocaleString()+"개 중 "+show+"개 표시";
+      $("wheel_list").innerHTML='<div class="wl-tickets">'+out.slice(0,show).map(function(t,i){return '<div class="wl-row"><span class="wl-idx">#'+(i+1)+'</span>'+t.map(ball).join("")+'</div>';}).join("")+'</div>';
+      $("wheel_note").innerHTML=note;
+      $("wheel_dl").disabled=!out.length;$("wheel_cp").disabled=!out.length;
+    }
+
+    function wheelRun(){
+      var pool=parsePool();
+      if(pool.length<6){$("wheel_note").innerHTML='<span style="color:var(--bad)">풀에 번호를 6개 이상 넣으세요.</span>';return;}
+      var mode=$("wheel_mode").value,out,note;
+      if(mode==="core"){
+        var maxc=ncr(pool.length,6);
+        if(maxc>60000){$("wheel_note").innerHTML='<span style="color:var(--bad)">코어 전체휠은 조합이 '+maxc.toLocaleString()+'개로 너무 많습니다. 풀을 20개 이하로 줄이세요.</span>';return;}
+        out=comb(pool,6).map(function(c){return c.slice().sort(function(a,b){return a-b;});});
+        note="코어 전체휠: 풀 <b>"+pool.length+"개</b>를 6개씩 완전 조합 → <b>"+out.length.toLocaleString()+"개</b>. 당첨 6개가 이 풀 안에 모두 있으면 1등 보장(2·3등 자동 포함).";
+      }else{
+        var set={};pool.forEach(function(n){set[n]=1;});
+        var bk=($("wheel_bankers").value||"").split(",").map(function(x){return parseInt(x.trim(),10);}).filter(function(x){return x>=1&&x<=45;});
+        bk=bk.filter(function(n,i){return bk.indexOf(n)===i;});
+        var bad=bk.filter(function(n){return !set[n];});
+        if(bad.length){$("wheel_note").innerHTML='<span style="color:var(--bad)">뱅커 '+bad.join(",")+' 는 풀에 없는 번호입니다.</span>';return;}
+        if(bk.length<1||bk.length>5){$("wheel_note").innerHTML='<span style="color:var(--bad)">뱅커는 1~5개로 지정하세요.</span>';return;}
+        var b=bk.length,k=6-b,rest=pool.filter(function(n){return bk.indexOf(n)<0;});
+        if(rest.length<k){$("wheel_note").innerHTML='<span style="color:var(--bad)">나머지 번호가 부족합니다.</span>';return;}
+        out=comb(rest,k).map(function(c){return bk.concat(c).sort(function(a,b){return a-b;});});
+        note="뱅커 고정형: <b>"+bk.join("·")+"</b> 고정 + 나머지 "+rest.length+"개에서 "+k+"개 조합 → <b>"+out.length.toLocaleString()+"개</b>. 고정한 뱅커 "+b+"개가 모두 당첨수일 때 나머지를 완전 커버(뱅커가 하나라도 틀리면 상한이 낮아짐).";
+      }
+      render(out,note,mode,pool);
+    }
+    $("wheel_run").onclick=wheelRun;
+    $("wheel_dl").onclick=function(){if(!LIST.length)return;var csv="no,n1,n2,n3,n4,n5,n6,sum\n"+LIST.map(function(t,i){return (i+1)+","+t.join(",")+","+t.reduce(function(a,b){return a+b;},0);}).join("\n");var bl=new Blob([csv],{type:"text/csv;charset=utf-8"}),u=URL.createObjectURL(bl),a=document.createElement("a");a.href=u;a.download="wheel_"+LIST.length+"_"+Date.now()+".csv";a.click();URL.revokeObjectURL(u);};
+    $("wheel_cp").onclick=function(){if(!LIST.length)return;if(navigator.clipboard)navigator.clipboard.writeText(LIST.map(function(t){return t.join(", ");}).join("\n"));var b=$("wheel_cp");b.textContent="복사됨!";setTimeout(function(){b.textContent="전체 복사";},1200);};
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
+})();
+</script>
+
 </body>
 </html>
