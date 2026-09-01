@@ -5434,5 +5434,99 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 })();
 </script>
 
+
+<!-- ===== 회차별 번호판 (7×7 그리드 카드) ===== -->
+<style id="numboard-style">
+#numboard .nb-controls{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
+#numboard .nb-controls label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+#numboard .nb-controls input{width:96px;background:#fff;border:1px solid #d7deea;border-radius:8px;padding:7px 9px;color:#2b3c53;font-size:13px}
+#numboard .nb-btn{background:#2fb3a4;color:#fff;border:0;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer}
+#numboard .nb-btn.sec{background:#eef2f8;color:#2b3c53}
+#numboard .nb-meta{color:var(--muted);font-size:12px;margin-left:auto}
+#numboard .nb-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(208px,1fr));gap:13px}
+#numboard .nb-card{border:1px solid #e3e8f0;border-radius:12px;background:#fff;padding:10px 11px}
+#numboard .nb-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+#numboard .nb-h b{font-size:14px;color:#1f2c40}
+#numboard .nb-h span{font-size:11px;color:#7b8794}
+#numboard .nb-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+#numboard .nb-c{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:10.5px;border-radius:5px;color:#c4ccd6;background:#f4f6fa;font-weight:600}
+#numboard .nb-c.g0{background:#f4b400;color:#3a2c00;font-weight:800}
+#numboard .nb-c.g1{background:#2f6fd0;color:#fff;font-weight:800}
+#numboard .nb-c.g2{background:#e0533d;color:#fff;font-weight:800}
+#numboard .nb-c.g3{background:#5a6472;color:#fff;font-weight:800}
+#numboard .nb-c.g4{background:#188a4d;color:#fff;font-weight:800}
+#numboard .nb-c.bon{background:#fff;color:#3a4658;border:2px solid #9aa7b6;font-weight:800}
+</style>
+
+<section class="view" id="numboard">
+  <div class="panel">
+    <h2 style="margin-bottom:6px">회차별 번호판</h2>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:14px">회차마다 1~45 번호판에 당첨번호를 표시합니다(십의자리 색). 기본은 최근 20회차이며, 구간을 지정하면 그 구간만 카드로 나열됩니다. (흰 테두리 = 보너스)</p>
+    <div class="nb-controls">
+      <label>시작 회차<input id="nb_start" type="number" min="1" placeholder="예: 1200"></label>
+      <label>끝 회차<input id="nb_end" type="number" min="1" placeholder="예: 1239"></label>
+      <button class="nb-btn" id="nb_apply">구간 적용</button>
+      <button class="nb-btn sec" id="nb_recent">최근 20회</button>
+      <span class="nb-meta" id="nb_meta"></span>
+    </div>
+    <div class="nb-gallery" id="nb_gallery"></div>
+  </div>
+</section>
+
+<script>
+(function(){
+  function boot(){
+    if(typeof switchView==="undefined"||typeof state==="undefined"||!state.rows){return setTimeout(boot,140);}
+    if(document.querySelector('.nav button[data-view="numboard"]'))return;
+    var main=document.querySelector(".main"),sec=document.getElementById("numboard");
+    if(main&&sec&&sec.parentNode!==main){var ft=main.querySelector(".site-footer");ft?main.insertBefore(sec,ft):main.appendChild(sec);}
+    var nav=document.querySelector(".nav");
+    var b=document.createElement("button");b.dataset.view="numboard";
+    b.innerHTML='<span class="nav-icon">▥</span><span class="nav-full">회차별 번호판</span><span class="nav-short">번호판</span>';
+    b.onclick=function(){switchView("numboard");};nav.appendChild(b);
+
+    var prev=window.switchView;
+    window.switchView=function(id){
+      prev(id);
+      if(id==="numboard"){
+        var t=document.getElementById("pageTitle");if(t)t.textContent="회차별 번호판";
+        document.querySelectorAll(".view").forEach(function(v){v.classList.toggle("active",v.id==="numboard");});
+        document.querySelectorAll(".nav button").forEach(function(x){x.classList.toggle("active",x.dataset.view==="numboard");});
+        try{render();}catch(e){}
+      }
+    };
+    document.addEventListener("lotto:data-updated",function(){var a=document.querySelector(".view.active");if(a&&a.id==="numboard")render();});
+
+    var $=function(i){return document.getElementById(i);};
+    function sorted(){return (state.rows||INITIAL.rows).slice().sort(function(a,b){return a.draw-b.draw;});}
+    function grp(n){return n<=10?"g0":n<=20?"g1":n<=30?"g2":n<=40?"g3":"g4";}
+
+    function render(){
+      var rows=sorted();if(!rows.length)return;
+      var s=parseInt($("nb_start").value,10),e=parseInt($("nb_end").value,10),list,label;
+      if(s&&e){var a=Math.min(s,e),b2=Math.max(s,e);list=rows.filter(function(r){return r.draw>=a&&r.draw<=b2;});label=a+"~"+b2+"회 ("+list.length+"회차)";}
+      else{list=rows.slice(-20);label="최근 20회차 ("+(list.length?list[0].draw+"~"+list[list.length-1].draw:"")+")";}
+      $("nb_meta").textContent=list.length?label:"해당 구간 데이터 없음";
+      list=list.slice().reverse();  // 최신 회차부터
+
+      $("nb_gallery").innerHTML=list.map(function(r){
+        var win={};r.nums.forEach(function(n){win[n]=1;});
+        var cells="";
+        for(var n=1;n<=45;n++){
+          var cls=win[n]?("nb-c "+grp(n)):(n===r.bonus?"nb-c bon":"nb-c");
+          cells+='<div class="'+cls+'">'+n+'</div>';
+        }
+        return '<div class="nb-card"><div class="nb-h"><b>'+r.draw+'회</b><span>'+((r.date||'').slice(2))+'</span></div>'+
+               '<div class="nb-grid">'+cells+'</div></div>';
+      }).join("");
+    }
+    $("nb_apply").onclick=render;
+    $("nb_recent").onclick=function(){$("nb_start").value="";$("nb_end").value="";render();};
+    ["nb_start","nb_end"].forEach(function(id){$(id).addEventListener("keydown",function(ev){if(ev.key==="Enter")render();});});
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
+})();
+</script>
+
 </body>
 </html>
