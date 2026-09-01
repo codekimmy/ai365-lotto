@@ -5255,6 +5255,8 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 #helpModal .hm-empty{color:#8598a8;font-size:13px;padding:16px 4px}
 .win-hint{margin-top:8px;font-size:12.5px;color:#0c7a72;background:#eefbfa;border:1px solid #cfeae6;
   border-radius:9px;padding:8px 11px;line-height:1.5}
+.glink{color:#149c8e;border-bottom:1px dashed #56c3b6;cursor:pointer;font-weight:600}
+.glink:hover{color:#0d7368;background:rgba(20,156,142,.10);border-bottom-style:solid}
 </style>
 
 <div id="helpModal"><div class="hm-card">
@@ -5384,6 +5386,49 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
     }
     wireWinHint();setTimeout(wireWinHint,900);setTimeout(wireWinHint,2000);
     document.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest('.nav button[data-view="gen_win"]');if(b)setTimeout(wireWinHint,60);});
+
+    // ===== 본문 용어를 클릭 링크로 연결 =====
+    var LINKS=[["종합 앙상블","종합 앙상블"],["구간 내 빈도 상위","구간 내 빈도 상위"],["빈도+미출현 균형","빈도+미출현 균형"],
+      ["장기 미출현 우선","장기 미출현 우선"],["합계 중앙 범위","합계 중앙"],["중복 조합 제거","중복 조합 제거"],
+      ["연속수 3개","연속수"],["번호 풀","번호 풀"],["3단 체인","3단 체인"],["냉각 점수","냉각 점수"],
+      ["무작위 기대","무작위 기대"],["평균 합계","합계"],["정확패턴","정확 조합"],["정확 조합","정확 조합"],
+      ["이월수","이월수"],["인접수","인접수"],["십의자리","십의자리"],["번호대","십의자리"],["미출현","미출현"],
+      ["끝수","끝수"],["홀짝","홀짝"],["연속수","연속수"],["냉각","냉각"],["반등","냉각"],["트리거","트리거"],
+      ["커버리지","커버리지"],["겹침","겹침"],["보너스","보너스"],["합계","합계"]];
+    LINKS.sort(function(a,b){return b[0].length-a[0].length;});
+    var SKIP=/^(SCRIPT|STYLE|A|BUTTON|SELECT|INPUT|TEXTAREA|OPTION|H1|H2|TH|TD)$/;
+    function tryLink(text,used){
+      for(var k=0;k<LINKS.length;k++){var p=LINKS[k][0],term=LINKS[k][1];
+        if(used[p])continue;var idx=text.indexOf(p);
+        if(idx>=0){used[p]=1;var f=document.createDocumentFragment();
+          f.appendChild(document.createTextNode(text.slice(0,idx)));
+          var s=document.createElement("span");s.className="glink";s.setAttribute("data-term",term);s.textContent=p;
+          f.appendChild(s);f.appendChild(document.createTextNode(text.slice(idx+p.length)));return f;}
+      }return null;
+    }
+    function walk(el,used,depth){
+      if(depth>6)return;
+      for(var i=0;i<el.childNodes.length;i++){var node=el.childNodes[i];
+        if(node.nodeType===3){var f=tryLink(node.nodeValue,used);if(f){el.replaceChild(f,node);i+=2;}}
+        else if(node.nodeType===1){
+          if(SKIP.test(node.tagName))continue;
+          if(node.classList&&(node.classList.contains("glink")||node.classList.contains("help-i")))continue;
+          if(node.id==="helpModal"||node.id==="topnav")continue;
+          walk(node,used,depth+1);
+        }
+      }
+    }
+    function linkifyView(){
+      var v=document.querySelector(".view.active");if(!v)return;var used={};
+      v.querySelectorAll("p,li,dd,.caption,.sub,.desc,.flow-copy,.result-copy,.our-check span,label span,.win-hint").forEach(function(el){
+        if(el.closest("#helpModal"))return;walk(el,used,0);
+      });
+    }
+    document.addEventListener("click",function(e){var g=e.target.closest&&e.target.closest(".glink");if(g)open(g.getAttribute("data-term"));});
+    var prevSV=window.switchView;
+    window.switchView=function(id){prevSV(id);setTimeout(linkifyView,60);};
+    linkifyView();[500,1200,2200].forEach(function(ms){setTimeout(linkifyView,ms);});
+    document.addEventListener("lotto:data-updated",function(){setTimeout(linkifyView,120);});
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
 })();
