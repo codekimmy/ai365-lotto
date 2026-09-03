@@ -5703,15 +5703,18 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
 </script>
 
 
-<!-- ===== 복합 끝수: 구조/그룹조합 클릭 시 회차 내역 ===== -->
+
+<!-- ===== 복합 끝수: 구조/그룹조합 클릭 시 회차 내역(인라인) ===== -->
 <style id="cx-style">
 #compositeStructureGrid .structure-card{cursor:pointer}
 #compositeStructureGrid .structure-card:hover{box-shadow:0 0 0 2px rgba(47,179,164,.4)}
-#compositeSignatureBody tr{cursor:pointer}
-#compositeSignatureBody tr:hover td{background:#f3fbfa}
+#compositeSignatureBody tr:not(.cx-detrow){cursor:pointer}
+#compositeSignatureBody tr:not(.cx-detrow):hover td{background:#f3fbfa}
 .cx-detail{border:1px solid #cfe8e4;background:#f2fbfa;border-radius:12px;padding:12px 13px}
-.cx-detail .cx-head{font-size:13px;font-weight:800;color:#0d6f66;margin-bottom:10px}
-.cx-draws{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.cx-inline{grid-column:1 / -1}
+.cx-detcell{background:#f2fbfa!important;padding:12px 13px!important}
+.cx-detail .cx-head,.cx-detcell .cx-head{font-size:13px;font-weight:800;color:#0d6f66;margin-bottom:10px}
+.cx-draws{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:10px}
 .cx-card{background:#fff;border:1px solid #e3e8f0;border-radius:10px;padding:9px 10px}
 .cx-card>b{font-size:13px;color:#1f2c40}
 .cx-date{color:#7b8794;font-size:11px}
@@ -5725,16 +5728,10 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
   function boot(){
     var grid=document.getElementById("compositeStructureGrid"),sigBody=document.getElementById("compositeSignatureBody");
     if(!grid||!sigBody){return setTimeout(boot,180);}
-    if(document.getElementById("compStructDetail"))return;
+    if(grid.__cxwired)return;grid.__cxwired=true;
     function rows(){return (typeof state!=="undefined"&&state.rows)?state.rows:(typeof INITIAL!=="undefined"?INITIAL.rows:[]);}
-
-    var sd=document.createElement("div");sd.id="compStructDetail";sd.style.margin="12px 0 4px";
-    grid.parentNode.insertBefore(sd,grid.nextSibling);
-    var sigTable=sigBody.closest("table")||sigBody;
-    var gd=document.createElement("div");gd.id="compSigDetail";gd.style.margin="12px 0 4px";
-    sigTable.parentNode.insertBefore(gd,sigTable.nextSibling);
-
     function grp(n){return n<=10?"g0":n<=20?"g1":n<=30?"g2":n<=40?"g3":"g4";}
+    function norm(s){return (s||"").replace(/\s/g,"");}
     function compItem(r){
       var nums=r.nums.map(Number).sort(function(a,b){return a-b;}),groups=[];
       for(var d=0;d<=9;d++){var gn=nums.filter(function(n){return n%10===d;});if(gn.length>=2)groups.push({digit:d,nums:gn});}
@@ -5746,44 +5743,50 @@ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",
       ordered=ordered.concat(nums.filter(function(n){return !rep[n];}));
       return {draw:r.draw,date:r.date||"",bonus:r.bonus,groups:groups,structure:structure,sig:sig,ordered:ordered};
     }
-    function norm(s){return (s||"").replace(/\s/g,"");}
     function cardHTML(it){
       return '<div class="cx-card"><b>'+it.draw+'회</b> <span class="cx-date">'+it.date+'</span>'+
         '<div class="cx-chips">'+it.groups.map(function(g){return '<span class="cx-chip">'+g.digit+'끝수 '+g.nums.join('·')+'</span>';}).join("")+'</div>'+
         '<div class="cx-balls">'+it.ordered.map(function(n){return '<span class="ball rc '+grp(n)+'">'+n+'</span>';}).join("")+
         (it.bonus?'<span class="ball rc bonus-num">+'+it.bonus+'</span>':'')+'</div></div>';
     }
-    function renderInto(box,title,list){
-      if(!list.length){box.innerHTML='<div class="cx-detail"><div class="cx-head">'+title+' — 해당 회차 없음</div></div>';return;}
+    function detailInner(title,list){
+      if(!list.length)return '<div class="cx-head">'+title+' — 해당 회차 없음</div>';
       var cap=Math.min(list.length,60);
-      box.innerHTML='<div class="cx-detail"><div class="cx-head">'+title+' · 총 '+list.length+'회차 (최근순, '+cap+'개 표시)</div>'+
-        '<div class="cx-draws">'+list.slice(0,cap).map(cardHTML).join("")+'</div></div>';
-      box.scrollIntoView({behavior:"smooth",block:"nearest"});
+      return '<div class="cx-head">'+title+' · 총 '+list.length+'회차 (최근순, '+cap+'개 표시)</div>'+
+        '<div class="cx-draws">'+list.slice(0,cap).map(cardHTML).join("")+'</div>';
     }
+    function matchStruct(st){return rows().map(compItem).filter(function(x){return x&&x.structure===st;}).sort(function(a,b){return b.draw-a.draw;});}
+    function matchSig(lab){return rows().map(compItem).filter(function(x){return x&&norm(x.sig)===norm(lab);}).sort(function(a,b){return b.draw-a.draw;});}
 
-    var curS=null,curG=null;
-    function showStruct(st){
-      if(curS===st){curS=null;sd.innerHTML="";return;}
-      curS=st;
-      var list=rows().map(compItem).filter(function(x){return x&&x.structure===st;}).sort(function(a,b){return b.draw-a.draw;});
-      renderInto(sd,"구조 "+st,list);
+    // 구조 카드: 클릭한 카드 바로 뒤(전체폭)에 상세
+    var structDet=null,curS=null;
+    function showStruct(card,st){
+      if(structDet){structDet.remove();structDet=null;}
+      if(curS===st){curS=null;return;}
+      curS=st;structDet=document.createElement("div");structDet.className="cx-detail cx-inline";
+      structDet.innerHTML=detailInner("구조 "+st,matchStruct(st));
+      card.parentNode.insertBefore(structDet,card.nextSibling);
     }
-    function showSig(lab){
-      if(curG===norm(lab)){curG=null;gd.innerHTML="";return;}
-      curG=norm(lab);
-      var list=rows().map(compItem).filter(function(x){return x&&norm(x.sig)===norm(lab);}).sort(function(a,b){return b.draw-a.draw;});
-      renderInto(gd,"그룹조합 "+lab,list);
+    // 그룹조합 표: 클릭한 행 바로 아래 상세 행
+    var sigDet=null,curG=null;
+    function showSig(tr,lab){
+      if(sigDet){sigDet.remove();sigDet=null;}
+      if(curG===norm(lab)){curG=null;return;}
+      curG=norm(lab);sigDet=document.createElement("tr");sigDet.className="cx-detrow";
+      var td=document.createElement("td");td.colSpan=9;td.className="cx-detcell";
+      td.innerHTML=detailInner("그룹조합 "+lab,matchSig(lab));
+      sigDet.appendChild(td);tr.parentNode.insertBefore(sigDet,tr.nextSibling);
     }
 
     document.addEventListener("click",function(e){
-      var card=e.target.closest&&e.target.closest("#compositeStructureGrid .structure-card");
-      if(card){var t=card.querySelector(".digit-title");if(t)showStruct(t.textContent.trim());return;}
-      var tr=e.target.closest&&e.target.closest("#compositeSignatureBody tr");
-      if(tr){var td=tr.querySelector("td");if(td)showSig(td.textContent.trim());return;}
+      if(!e.target.closest)return;
+      var card=e.target.closest("#compositeStructureGrid .structure-card");
+      if(card){var t=card.querySelector(".digit-title");if(t)showStruct(card,t.textContent.trim());return;}
+      var tr=e.target.closest("#compositeSignatureBody tr");
+      if(tr&&!tr.classList.contains("cx-detrow")){var td=tr.querySelector("td");if(td)showSig(tr,td.textContent.trim());return;}
     });
-    // 필터로 표가 다시 그려지면 열려있던 상세는 닫음(내용 불일치 방지)
     ["compositeSignatureGroups","compositeSignatureStatus","compositeSignatureSearch"].forEach(function(id){
-      var el=document.getElementById(id);if(el)el.addEventListener("change",function(){curG=null;gd.innerHTML="";});
+      var el=document.getElementById(id);if(el)el.addEventListener("change",function(){if(sigDet){sigDet.remove();sigDet=null;curG=null;}});
     });
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot);else boot();
